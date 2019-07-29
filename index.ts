@@ -14,6 +14,7 @@ let sourceFile = ts.createSourceFile('sample.ts', source, ts.ScriptTarget.ES2015
 
 ts.forEachChild(sourceFile, each);
 
+// Visitor patten
 function each(node: ts.Node) {
     // let outKind = (node: ts.Node): void => console.log(ts.SyntaxKind[node.kind]);
     switch (node.kind) {
@@ -23,6 +24,7 @@ function each(node: ts.Node) {
     let next = () => ts.forEachChild(node, each);
 }
 
+// Arrow function should be declared beforehand
 // let outKind = (node: ts.Node): void => console.log(node.kind);
 
 // function outKind(node: ts.Node) {
