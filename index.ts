@@ -8,6 +8,28 @@ let program = ts.createProgram(fileNames, {
 
 let checker = program.getTypeChecker()
 
+let emitDiagnostics = (diagnostics: ts.Diagnostic[]) => {
+    // console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, null))
+    diagnostics.forEach(diagnostic => {
+        if (diagnostic.file) {
+            let { line, character } = diagnostic.file.getLineAndCharacterOfPosition(
+                diagnostic.start!
+            )
+            let message = ts.flattenDiagnosticMessageText(
+                diagnostic.messageText,
+                "\n"
+            )
+            console.log(
+                `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`
+            )
+        } else {
+            console.log(
+                `${ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")}`
+            )
+        }
+    })
+}
+
 var tKernelImported = false
 let isImportTKernel = (i: ts.ImportDeclaration) => {
     let namedImport = i.importClause.namedBindings as ts.NamespaceImport
@@ -72,7 +94,14 @@ let visit = (node: ts.Node) => {
     process.exit(1)
 }
 
-// Visit every sourceFile in the program
+// Apply type check
+let allDiagnostics = ts.getPreEmitDiagnostics(program)
+    .concat(program.emit().diagnostics)
+if (allDiagnostics.length > 0) {
+    emitDiagnostics(allDiagnostics)
+    process.exit(1)
+}
+
 for (const sourceFile of program.getSourceFiles()) {
     if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
         // Walk the tree to search for classes
