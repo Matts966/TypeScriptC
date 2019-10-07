@@ -4,9 +4,9 @@ let fileNames = process.argv.slice(2)
 let program = ts.createProgram(fileNames, {
     target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS
-});
-let checker = program.getTypeChecker();
-checker.
+})
+
+let checker = program.getTypeChecker()
 
 var tKernelImported = false
 let isImportTKernel = (i: ts.ImportDeclaration) => {
@@ -76,6 +76,6 @@ let visit = (node: ts.Node) => {
 for (const sourceFile of program.getSourceFiles()) {
     if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
         // Walk the tree to search for classes
-        ts.forEachChild(sourceFile, visit);
+        ts.forEachChild(sourceFile, visit)
     }
 }
