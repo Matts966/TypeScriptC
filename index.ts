@@ -9,25 +9,12 @@ let program = ts.createProgram(fileNames, {
 let checker = program.getTypeChecker()
 
 let emitDiagnostics = (diagnostics: ts.Diagnostic[]) => {
-    // console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, null))
-    diagnostics.forEach(diagnostic => {
-        if (diagnostic.file) {
-            let { line, character } = diagnostic.file.getLineAndCharacterOfPosition(
-                diagnostic.start!
-            )
-            let message = ts.flattenDiagnosticMessageText(
-                diagnostic.messageText,
-                "\n"
-            )
-            console.log(
-                `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`
-            )
-        } else {
-            console.log(
-                `${ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")}`
-            )
-        }
-    })
+    const diagHost: ts.FormatDiagnosticsHost = {
+        getCanonicalFileName(f) { return f; },
+        getCurrentDirectory() { return "."; },
+        getNewLine() { return "\r\n"; }
+    }
+    console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost))
 }
 
 var tKernelImported = false
