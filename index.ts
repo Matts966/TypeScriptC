@@ -42,36 +42,74 @@ let handleImport = (node: ts.Node) => {
 
 let visitExpressionStatement = (expressionStatement: ts.ExpressionStatement) => {
     visitExpression(expressionStatement.expression)
+    console.log()
 }
 
 let visitExpression = (expression: ts.Expression) => {
-    console.log(expression)
+    if (ts.isCallExpression(expression)) {
+        if (expression.expression.getText() == "console.log") {
+            process.stdout.write("tm_putstring(\"" + expression.arguments.map((e) => {
+                if (ts.isLiteralExpression(e))
+                    return e.text
+                else process.exit(1)
+            }) + "\")")
+            return
+        }
+
+        for (const node of expression.arguments) {
+            process.stdout.write(checker.typeToString(checker.getTypeAtLocation(node)) + " ")
+        }
+
+        console.log(")")
+
+        return
+    }
+    process.stdout.write(expression.getText())
+}
+
+let visitStatement = (statement: ts.Statement) => {
+    process.stdout.write(statement.getText())
+}
+
+let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
+    process.stdout.write(variableStatement.getText())
 }
 
 let visit = (node: ts.Node) => {
     if (handleImport(node)) return
     if (ts.isExpressionStatement(node)) {
         visitExpressionStatement(node as ts.ExpressionStatement)
+        console.log()
         return
     }
     if (ts.isVariableStatement(node)) {
-        console.log("VariableStatement: " + node.declarationList)
+        console.log("VariableStatement: ")
+        visitVariableStatement(node)
+        console.log()
         return
     }
     if (ts.isIfStatement(node)) {
-        console.log("IfStatement: " + node.expression)
+        process.stdout.write("if (")
+        visitExpression(node.expression)
+        process.stdout.write(") ")
+        visitStatement(node.thenStatement)
+        if (node.elseStatement) {
+            visitStatement(node.elseStatement)
+        }
+        console.log()
         return
     }
     if (ts.isFunctionDeclaration(node)) {
         console.log("FunctionDeclaration: " + node.body)
-        return
-    }
-    if (ts.isClassDeclaration(node)) {
-        console.log("ClassDeclaration: " + node.name)
+        console.log()
         return
     }
     if (ts.isWhileStatement(node)) {
-        console.log("WhileStatement: " + node.expression)
+        process.stdout.write("while (")
+        visitExpression(node.expression)
+        process.stdout.write(") ")
+        visitStatement(node.statement)
+        console.log()
         return
     }
     if (node.kind == ts.SyntaxKind.EndOfFileToken) {
