@@ -40,11 +40,6 @@ let handleImport = (node: ts.Node) => {
     }
 }
 
-let visitExpressionStatement = (expressionStatement: ts.ExpressionStatement) => {
-    visitExpression(expressionStatement.expression)
-    console.log()
-}
-
 let visitExpression = (expression: ts.Expression) => {
     if (ts.isCallExpression(expression)) {
         if (expression.expression.getText() == "console.log") {
@@ -67,8 +62,50 @@ let visitExpression = (expression: ts.Expression) => {
     process.stdout.write(expression.getText())
 }
 
+let isStatement = (node: ts.Node): node is ts.Statement => {
+    if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement || ts.isVariableStatement || ts.isReturnStatement) {
+        return true
+    }
+}
+
+let visitExpressionStatement = (expressionStatement: ts.ExpressionStatement) => {
+    visitExpression(expressionStatement.expression)
+    console.log()
+}
+
 let visitStatement = (statement: ts.Statement) => {
-    process.stdout.write(statement.getText())
+    if (ts.isExpressionStatement(statement)) {
+        visitExpressionStatement(statement)
+        console.log()
+        return
+    }
+    if (ts.isVariableStatement(statement)) {
+        console.log("VariableStatement: ")
+        visitVariableStatement(statement)
+        console.log()
+        return
+    }
+    if (ts.isIfStatement(statement)) {
+        process.stdout.write("if (")
+        visitExpression(statement.expression)
+        process.stdout.write(") ")
+        visitStatement(statement.thenStatement)
+        if (statement.elseStatement) {
+            visitStatement(statement.elseStatement)
+        }
+        console.log()
+        return
+    }
+    if (ts.isWhileStatement(statement)) {
+        process.stdout.write("while (")
+        visitExpression(statement.expression)
+        process.stdout.write(") ")
+        visitStatement(statement.statement)
+        console.log()
+        return
+    }
+    console.error("don't know how to handle", ts.SyntaxKind[statement.kind])
+    process.exit(1)
 }
 
 let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
@@ -77,45 +114,18 @@ let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
 
 let visit = (node: ts.Node) => {
     if (handleImport(node)) return
-    if (ts.isExpressionStatement(node)) {
-        visitExpressionStatement(node as ts.ExpressionStatement)
-        console.log()
-        return
-    }
-    if (ts.isVariableStatement(node)) {
-        console.log("VariableStatement: ")
-        visitVariableStatement(node)
-        console.log()
-        return
-    }
-    if (ts.isIfStatement(node)) {
-        process.stdout.write("if (")
-        visitExpression(node.expression)
-        process.stdout.write(") ")
-        visitStatement(node.thenStatement)
-        if (node.elseStatement) {
-            visitStatement(node.elseStatement)
-        }
-        console.log()
-        return
+    if (isStatement(node)) {
+        return visitStatement(node)
     }
     if (ts.isFunctionDeclaration(node)) {
         console.log("FunctionDeclaration: " + node.body)
         console.log()
         return
     }
-    if (ts.isWhileStatement(node)) {
-        process.stdout.write("while (")
-        visitExpression(node.expression)
-        process.stdout.write(") ")
-        visitStatement(node.statement)
-        console.log()
+    if (node.kind == ts.SyntaxKind.EndOfFileToken) {
         return
     }
-    if (node.kind == ts.SyntaxKind.EndOfFileToken) {
-        process.exit(0)
-    }
-    console.log("don't know how to handle", ts.SyntaxKind[node.kind])
+    console.error("don't know how to handle", ts.SyntaxKind[node.kind])
     process.exit(1)
 }
 
@@ -127,9 +137,23 @@ if (allDiagnostics.length > 0) {
     process.exit(1)
 }
 
+console.log(`#include <tk/tkernel.h>
+#include <tm/tmonitor.h>
+#include <libstr.h>
+`)
+
+console.log(`EXPORT	INT	usermain( void ) {
+	T_CTSK t_ctsk;
+	ID objid;
+    t_ctsk.tskatr = TA_HLNG | TA_DSNAME;
+`)
+
 for (const sourceFile of program.getSourceFiles()) {
     if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
         // Walk the tree to search for classes
         ts.forEachChild(sourceFile, visit)
     }
 }
+
+console.log(`}
+`)
