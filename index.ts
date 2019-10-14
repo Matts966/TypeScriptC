@@ -17,28 +17,33 @@ let emitDiagnostics = (diagnostics: ts.Diagnostic[]) => {
     console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost))
 }
 
-enum IndentType { tab = ' ', space = '   ' }
-interface Printer {
-    indentLevel: Number,
-    indentType: IndentType,
-    withNewLine: Boolean
-    print: (s: string) => void
+enum IndentType { tab = '\t', space = '\s' }
+type PrinterOptions = {
+    indentLevel?: number,
+    indentType?: IndentType,
+    withNewLine?: boolean,
 }
-const printer: Printer = {
-    indentLevel: 1,
-    indentType: IndentType.tab,
-    withNewLine: false,
-    print: (s: string) => {
-        if (this.indentLevel > 0) {
-            s = this.indentType.repeat(this.indentLevel) + s
+interface Printer {
+    print: (s: string, p?: PrinterOptions) => void
+}
+class StdOutPrinter implements Printer {
+    options: PrinterOptions = {
+        indentLevel: 1,
+        indentType: IndentType.tab,
+        withNewLine: true,
+    };
+    print(s: string, p: PrinterOptions = this.options) {
+        if (p.indentLevel > 0) {
+            s = p.indentType.repeat(p.indentLevel) + s
         }
-        if (this.withNewLine) {
+        if (p.withNewLine) {
             console.log(s)
         } else {
             process.stdout.write(s)
         }
     }
 }
+let printer = new StdOutPrinter()
 
 var tKernelImported = false
 let isImportTKernel = (i: ts.ImportDeclaration) => {
@@ -66,11 +71,13 @@ let handleImport = (node: ts.Node) => {
 let visitExpression = (expression: ts.Expression) => {
     if (ts.isCallExpression(expression)) {
         if (expression.expression.getText() == "console.log") {
-            process.stdout.write("tm_putstring(\"" + expression.arguments.map((e) => {
+            printer.options.withNewLine = false
+            printer.print("tm_putstring(\"" + expression.arguments.map((e) => {
                 if (ts.isLiteralExpression(e))
                     return e.text
                 else process.exit(1)
             }) + "\")")
+            printer.options.withNewLine = true
             return
         }
 
@@ -78,7 +85,7 @@ let visitExpression = (expression: ts.Expression) => {
             process.stdout.write(checker.typeToString(checker.getTypeAtLocation(node)) + " ")
         }
 
-        console.log(")")
+        console.log(");")
 
         return
     }
@@ -86,7 +93,7 @@ let visitExpression = (expression: ts.Expression) => {
 }
 
 let isStatement = (node: ts.Node): node is ts.Statement => {
-    if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement || ts.isVariableStatement || ts.isReturnStatement) {
+    if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
         return true
     }
 }
@@ -100,7 +107,6 @@ let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
 let visitStatement = (statement: ts.Statement) => {
     if (ts.isExpressionStatement(statement)) {
         visitExpressionStatement(statement)
-        console.log()
         return
     }
     if (ts.isVariableStatement(statement)) {
@@ -125,7 +131,16 @@ let visitStatement = (statement: ts.Statement) => {
         visitExpression(statement.expression)
         process.stdout.write(") ")
         visitStatement(statement.statement)
-        console.log()
+        return
+    }
+    if (ts.isBlock(statement)) {
+        printer.print("{", {indentLevel: 0})
+        printer.options.indentLevel += 1
+        statement.statements.forEach((e) => {
+            visitStatement(e)
+        })
+        printer.options.indentLevel -= 1
+        printer.print("}")
         return
     }
     console.error("don't know how to handle", ts.SyntaxKind[statement.kind])
@@ -162,10 +177,10 @@ console.log(`#include <tk/tkernel.h>
 #include <libstr.h>
 `)
 
-console.log(`EXPORT	INT	usermain( void ) {
-	T_CTSK t_ctsk;
-	ID objid;
-    t_ctsk.tskatr = TA_HLNG | TA_DSNAME;
+console.log(`EXPORT INT usermain( void ) {
+\tT_CTSK t_ctsk;
+\tID objid;
+\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 `)
 
 for (const sourceFile of program.getSourceFiles()) {
