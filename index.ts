@@ -17,7 +17,7 @@ let emitDiagnostics = (diagnostics: ts.Diagnostic[]) => {
     console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost))
 }
 
-enum IndentType{ tab = ' ', space = '   ' }
+enum IndentType { tab = ' ', space = '   ' }
 interface Printer {
     indentLevel: Number,
     indentType: IndentType,
@@ -90,12 +90,13 @@ let isStatement = (node: ts.Node): node is ts.Statement => {
         return true
     }
 }
-
 let visitExpressionStatement = (expressionStatement: ts.ExpressionStatement) => {
     visitExpression(expressionStatement.expression)
     console.log()
 }
-
+let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
+    process.stdout.write(variableStatement.getText())
+}
 let visitStatement = (statement: ts.Statement) => {
     if (ts.isExpressionStatement(statement)) {
         visitExpressionStatement(statement)
@@ -129,10 +130,6 @@ let visitStatement = (statement: ts.Statement) => {
     }
     console.error("don't know how to handle", ts.SyntaxKind[statement.kind])
     process.exit(1)
-}
-
-let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
-    process.stdout.write(variableStatement.getText())
 }
 
 let visit = (node: ts.Node) => {

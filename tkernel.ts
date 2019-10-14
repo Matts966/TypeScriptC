@@ -6,7 +6,7 @@ export class Task implements Task {
     readonly start: (info: Number) => Result
     readonly sleep: (t: waitType) => Result
     readonly wakeUp: () => Result
-    constructor(task: (info: Number) => Result, priority?: Number, stackSize?: Number){
+    constructor(task: (info: Number) => Result, priority?: Number, stackSize?: Number) {
         this.task = task
         this.priority
     }
@@ -21,7 +21,7 @@ export interface Task {
     readonly sleep: (t: waitType) => Result
 }
 
-export const ask = (_: string) => {}
+export const ask = (_: string) => { }
 
 export const enum result {
     ok = "ok",
