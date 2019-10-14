@@ -121,7 +121,7 @@ let visit = (node: ts.Node) => {
 
 // Apply type check
 let allDiagnostics = ts.getPreEmitDiagnostics(program)
-    .concat(program.emit().diagnostics)
+    .concat()
 if (allDiagnostics.length > 0) {
     emitDiagnostics(allDiagnostics)
     process.exit(1)
