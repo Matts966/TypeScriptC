@@ -1,4 +1,4 @@
-export class Task {
+export class Task implements Task {
     task: (info: Number) => void
     stackSize: Number = 1024
     priority: Number = 1
@@ -6,19 +6,20 @@ export class Task {
     readonly start: (info: Number) => Result
     readonly sleep: (t: waitType) => Result
     readonly wakeUp: () => Result
-    constructor(task: (info: Number) => Result){
+    constructor(task: (info: Number) => Result, priority?: Number, stackSize?: Number){
         this.task = task
+        this.priority
     }
 }
 
-// export interface Task {
-//     task: () => void
-//     stackSize: Number
-//     priority: Number
-//     readonly id: Number
-//     readonly start: (Number) => error
-//     readonly sleep: () => error
-// }
+export interface Task {
+    task: (info: Number) => void
+    stackSize: Number
+    priority: Number
+    readonly id: Number
+    readonly start: (info: Number) => Result
+    readonly sleep: (t: waitType) => Result
+}
 
 export const ask = (_: string) => {}
 
