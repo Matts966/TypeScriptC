@@ -17,6 +17,29 @@ let emitDiagnostics = (diagnostics: ts.Diagnostic[]) => {
     console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost))
 }
 
+enum IndentType{ tab = ' ', space = '   ' }
+interface Printer {
+    indentLevel: Number,
+    indentType: IndentType,
+    withNewLine: Boolean
+    print: (s: string) => void
+}
+const printer: Printer = {
+    indentLevel: 1,
+    indentType: IndentType.tab,
+    withNewLine: false,
+    print: (s: string) => {
+        if (this.indentLevel > 0) {
+            s = this.indentType.repeat(this.indentLevel) + s
+        }
+        if (this.withNewLine) {
+            console.log(s)
+        } else {
+            process.stdout.write(s)
+        }
+    }
+}
+
 var tKernelImported = false
 let isImportTKernel = (i: ts.ImportDeclaration) => {
     let namedImport = i.importClause.namedBindings as ts.NamespaceImport
