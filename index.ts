@@ -8,8 +8,8 @@ let program = ts.createProgram(fileNames, {
 
 let checker = program.getTypeChecker()
 
-let emitDiagnostics = (diagnostics: ts.Diagnostic[]) => {
-    const diagHost: ts.FormatDiagnosticsHost = {
+let emitDiagnostics = (diagnostics : ts.Diagnostic[]) => {
+    const diagHost : ts.FormatDiagnosticsHost = {
         getCanonicalFileName(f) { return f; },
         getCurrentDirectory() { return "."; },
         getNewLine() { return "\r\n"; }
@@ -24,15 +24,15 @@ type PrinterOptions = {
     withNewLine?: boolean,
 }
 interface Printer {
-    print: (s: string, p?: PrinterOptions) => void
+    print : (s : string, p?: PrinterOptions) => void
 }
 class StdOutPrinter implements Printer {
-    options: PrinterOptions = {
+    options : PrinterOptions = {
         indentLevel: 1,
         indentType: IndentType.tab,
         withNewLine: true,
     };
-    print(s: string, p = this.options) {
+    print(s : string, p = this.options) {
         if (p.indentLevel > 0) {
             s = p.indentType.repeat(p.indentLevel) + s
         }
@@ -46,7 +46,7 @@ class StdOutPrinter implements Printer {
 let printer = new StdOutPrinter()
 
 var tKernelImported = false
-let isImportTKernel = (i: ts.ImportDeclaration) => {
+let isImportTKernel = (i : ts.ImportDeclaration) => {
     let namedImport = i.importClause.namedBindings as ts.NamespaceImport
     if (namedImport.name.text != "tkernel") {
         return false
@@ -54,7 +54,7 @@ let isImportTKernel = (i: ts.ImportDeclaration) => {
     tKernelImported = true
     return true
 }
-let handleImport = (node: ts.Node) => {
+let handleImport = (node : ts.Node) => {
     if (ts.isImportDeclaration(node)) {
         if (!isImportTKernel(node)) {
             console.log('please import only tkernel by `import * as tkernel from "./tkernel"`')
@@ -68,7 +68,7 @@ let handleImport = (node: ts.Node) => {
     }
 }
 
-let visitExpression = (expression: ts.Expression) => {
+let visitExpression = (expression : ts.Expression) => {
     if (ts.isCallExpression(expression)) {
         if (expression.expression.getText() == "console.log") {
             printer.options.withNewLine = false
@@ -92,19 +92,19 @@ let visitExpression = (expression: ts.Expression) => {
     process.stdout.write(expression.getText())
 }
 
-let isStatement = (node: ts.Node): node is ts.Statement => {
+let isStatement = (node : ts.Node) : node is ts.Statement => {
     if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
         return true
     }
 }
-let visitExpressionStatement = (expressionStatement: ts.ExpressionStatement) => {
+let visitExpressionStatement = (expressionStatement : ts.ExpressionStatement) => {
     visitExpression(expressionStatement.expression)
     console.log()
 }
-let visitVariableStatement = (variableStatement: ts.VariableStatement) => {
+let visitVariableStatement = (variableStatement : ts.VariableStatement) => {
     process.stdout.write(variableStatement.getText())
 }
-let visitStatement = (statement: ts.Statement) => {
+let visitStatement = (statement : ts.Statement) => {
     if (ts.isExpressionStatement(statement)) {
         visitExpressionStatement(statement)
         return
@@ -134,7 +134,7 @@ let visitStatement = (statement: ts.Statement) => {
         return
     }
     if (ts.isBlock(statement)) {
-        printer.print("{", {indentLevel: 0})
+        printer.print("{", { indentLevel: 0 })
         printer.options.indentLevel += 1
         statement.statements.forEach((e) => {
             visitStatement(e)
@@ -147,7 +147,7 @@ let visitStatement = (statement: ts.Statement) => {
     process.exit(1)
 }
 
-let visit = (node: ts.Node) => {
+let visit = (node : ts.Node) => {
     if (handleImport(node)) return
     if (isStatement(node)) {
         return visitStatement(node)

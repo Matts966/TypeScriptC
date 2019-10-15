@@ -1,6 +1,6 @@
 import * as tkernel from "./tkernel"
 
-const taskA = new tkernel.Task((_: Number) => {
+const taskA = new tkernel.Task((_ : Number) => {
     for (var i = 0; i < 3; i++) {
         console.log("*** tk_wup_tsk to tsk_b.")
         // danger
