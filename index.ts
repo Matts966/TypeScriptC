@@ -32,7 +32,7 @@ class StdOutPrinter implements Printer {
         indentType: IndentType.tab,
         withNewLine: true,
     };
-    print(s: string, p: PrinterOptions = this.options) {
+    print(s: string, p = this.options) {
         if (p.indentLevel > 0) {
             s = p.indentType.repeat(p.indentLevel) + s
         }
