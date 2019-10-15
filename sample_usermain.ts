@@ -9,8 +9,7 @@ const taskA = new tkernel.Task((_: Number) => {
             console.log(" *** Failed in tk_wup_tsk to tsk_b");
     }
     return tkernel.result.ok
-}
-)
+})
 
 const taskB = new tkernel.Task(() => {
     console.log("*** tsk_b started.")
@@ -19,12 +18,10 @@ const taskB = new tkernel.Task(() => {
         this.sleep(tkernel.waitType.forever)
         console.log("*** tsk_b was Triggered")
     }
-}
-)
-taskB.priority = 2
+}, 2)
 
 if (taskA.start(0) != tkernel.result.ok) {
-    console.log(" *** Failed in start of tsk_b.")
+    console.log(" *** Failed in start of tsk_a.")
     process.exit(1)
 }
 console.log("*** tsk_a started.")
