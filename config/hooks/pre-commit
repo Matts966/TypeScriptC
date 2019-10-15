@@ -20,7 +20,7 @@ exec 1>&2
 IS_ERROR=0
 
 # Format typescript soruce.
-for FILE in `git diff-index --name-status $against -- | grep -E '^[AUM].*\.ts$'| cut -c3-`; do
+for FILE in `git diff-index --cached --name-status $against -- | grep -E '^[AUM].*\.ts$'| cut -c3-`; do
 	# Check the syntax.
 	if tsc --noEmit $FILE; then
 		tsfmt -r $FILE

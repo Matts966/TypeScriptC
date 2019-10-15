@@ -8,3 +8,5 @@ test-tsfmt:
 	@type tsfmt
 rm:
 	rm *.js
+install-pre-commit-hook:
+	sudo ln -sf $(PWD)/config/hooks/pre-commit $(PWD)/.git/hooks/pre-commit
