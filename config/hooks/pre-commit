@@ -21,7 +21,7 @@ IS_ERROR=0
 
 # Format typescript soruce.
 FILES=`git diff-index --cached --name-status $against -- | grep -E '^[AUM].*\.ts$'| cut -c3- | tr '\n' ' '`
-if ![[tsc --noEmit $FILES || tsfmt --verify $FILE]]; then
+if ![[tsc --noEmit $FILES || tsfmt --verify $FILES]]; then
 	IS_ERROR=1
 fi
 
