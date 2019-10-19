@@ -66,6 +66,11 @@ class StdOutPrinter implements Printer {
 }
 let printer = new StdOutPrinter()
 
+let isGlobal = (node : ts.Node) => {
+    if (ts.isSourceFile(node.parent)) return true
+    return false
+}
+
 var tKernelImported = false
 let isImportTKernel = (i : ts.ImportDeclaration) => {
     let namedImport = i.importClause.namedBindings as ts.NamespaceImport
@@ -167,6 +172,24 @@ let visitStatement = (statement : ts.Statement) => {
     emitDiagnostic(statement, "visitStatement: don't know how to handle" + ts.SyntaxKind[statement.kind])
     process.exit(1)
 }
+let visitClassDeclaration = (classDeclaration : ts.ClassDeclaration) => {
+    if (!isGlobal(classDeclaration)) emitDiagnostic(classDeclaration, "ClassDeclarations is only allowed in global scope")
+    let notAllowedDiagnostic = () => emitDiagnostic(classDeclaration, "ClassDeclarations other than tasks are not allowed")
+    if (classDeclaration.heritageClauses.length != 1 && classDeclaration.heritageClauses[0].types.length != 1) {
+        notAllowedDiagnostic()
+    }
+    if (classDeclaration.heritageClauses[0].types[0].getText() != "tkernel.Task") {
+        notAllowedDiagnostic()
+    }
+    notAllowedDiagnostic = () => emitDiagnostic(classDeclaration, "Task Declaration should be only with task function")
+    if (classDeclaration.members.length != 1) {
+        notAllowedDiagnostic()
+    }
+    if (classDeclaration.members[0].name.getText() != "task") {
+        notAllowedDiagnostic()
+    }
+    console.log(classDeclaration.members[0].getText())
+}
 
 let visit = (node : ts.Node) => {
     if (handleImport(node)) return
@@ -178,9 +201,13 @@ let visit = (node : ts.Node) => {
         console.log()
         return
     }
+    if (ts.isClassDeclaration(node)) {
+        return visitClassDeclaration(node)
+    }
     if (node.kind == ts.SyntaxKind.EndOfFileToken) {
         return
     }
+    //TODO: allow only constant task declaration
     emitDiagnostic(node, "visit: don't know how to handle" + ts.SyntaxKind[node.kind])
     process.exit(1)
 }

@@ -20,8 +20,8 @@ class TaskB extends tkernel.Task {
     }
 }
 
-let taskA = new TaskA()
-let taskB = new TaskB(2)
+const taskA = new TaskA()
+const taskB = new TaskB(2)
 
 if (taskA.start(0) != tkernel.result.ok) {
     console.log(" *** Failed in start of tsk_a.")
