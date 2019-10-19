@@ -17,7 +17,6 @@ fi
 
 # Redirect output to stderr.
 exec 1>&2
-IS_ERROR=0
 
 # Format typescript soruce.
 FILES=`git diff-index --cached --name-status $against -- | grep -E '^[AUM].*\.ts$'| cut -c3- | tr '\n' ' '`
@@ -26,9 +25,9 @@ if [[ $FILES == '' ]]; then
 	exit 0
 fi
 
-if tsc --noEmit $FILES || tsfmt --verify $FILES ; then
-	echo "some sources in indexed files can't be compiled or are ill-formatted"
-	IS_ERROR=1
+if tsc --noEmit $FILES && tsfmt --verify $FILES ; then
+	exit 0
 fi
 
-exit $IS_ERROR
+echo "some sources in indexed files can't be compiled or are ill-formatted"
+exit 1
