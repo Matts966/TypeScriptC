@@ -2,8 +2,9 @@ import * as ts from 'typescript'
 
 let fileNames = process.argv.slice(2)
 let program = ts.createProgram(fileNames, {
-    target: ts.ScriptTarget.ES5,
-    module: ts.ModuleKind.CommonJS
+    target: ts.ScriptTarget.ESNext,
+    module: ts.ModuleKind.ESNext,
+    noImplicitAny: true
 })
 
 let checker = program.getTypeChecker()
