@@ -25,6 +25,6 @@ export type Result = result.ok | result.sys | result.nocop
 export type uint = number
 export type timeOut = waitType.forever | waitType.polling | uint
 export enum waitType {
-    forever,
-    polling,
+    forever = "forever",
+    polling = "polling",
 }
