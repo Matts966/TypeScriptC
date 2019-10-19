@@ -17,6 +17,26 @@ let emitDiagnostics = (diagnostics : ts.Diagnostic[]) => {
     console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost))
 }
 
+class Diagnostic implements ts.Diagnostic {
+    category : ts.DiagnosticCategory
+    code : number
+    file : ts.SourceFile | undefined
+    start : number | undefined
+    length : number | undefined
+    messageText : string | ts.DiagnosticMessageChain
+    constructor(category : ts.DiagnosticCategory, file : ts.SourceFile, start : number, length : number, messageText : string) {
+        this.category = category
+        this.file = file
+        this.start = start
+        this.length = length
+        this.messageText = messageText
+    }
+}
+let emitDiagnostic = (node : ts.Node, messageText : string) => {
+    emitDiagnostics([new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)])
+    process.exit(1)
+}
+
 enum IndentType { tab = '\t', space = '\s' }
 type PrinterOptions = {
     indentLevel?: number,
@@ -57,13 +77,13 @@ let isImportTKernel = (i : ts.ImportDeclaration) => {
 let handleImport = (node : ts.Node) => {
     if (ts.isImportDeclaration(node)) {
         if (!isImportTKernel(node)) {
-            console.log('please import only tkernel by `import * as tkernel from "./tkernel"`')
+            emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`')
             process.exit(1)
         }
         return true
     }
     if (!tKernelImported) {
-        console.log('please import tkernel by `import * as tkernel from "./tkernel"`')
+        emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`')
         process.exit(1)
     }
 }
@@ -143,7 +163,7 @@ let visitStatement = (statement : ts.Statement) => {
         printer.print("}")
         return
     }
-    console.error("don't know how to handle", ts.SyntaxKind[statement.kind])
+    emitDiagnostic(statement, "visitStatement: don't know how to handle" + ts.SyntaxKind[statement.kind])
     process.exit(1)
 }
 
@@ -160,7 +180,7 @@ let visit = (node : ts.Node) => {
     if (node.kind == ts.SyntaxKind.EndOfFileToken) {
         return
     }
-    console.error("don't know how to handle", ts.SyntaxKind[node.kind])
+    emitDiagnostic(node, "visit: don't know how to handle" + ts.SyntaxKind[node.kind])
     process.exit(1)
 }
 
