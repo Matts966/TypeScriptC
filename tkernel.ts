@@ -1,24 +1,15 @@
-export class Task implements Task {
-    task : (info : Number) => void
-    stackSize : Number = 1024
-    priority : Number = 1
-    readonly id : Number
-    readonly start : (info : Number) => Result
-    readonly sleep : (t : waitType) => Result
-    readonly wakeUp : () => Result
-    constructor(task : (info : Number) => Result, priority?: Number, stackSize?: Number) {
-        this.task = task
-        this.priority
+export abstract class Task implements Task {
+    abstract task(info : number) : void
+    stackSize : number = 1024
+    priority : number = 1
+    static readonly id : number
+    public start(info : number) { return result.ok }
+    protected sleep(t : timeOut) { return result.ok }
+    public wakeUp() { return result.ok }
+    constructor(priority?: number, stackSize?: number) {
+        if (priority) this.priority = priority
+        if (stackSize) this.stackSize = stackSize
     }
-}
-
-export interface Task {
-    task : (info : Number) => void
-    stackSize : Number
-    priority : Number
-    readonly id : Number
-    readonly start : (info : Number) => Result
-    readonly sleep : (t : waitType) => Result
 }
 
 export const ask = (_ : string) => { }
@@ -31,7 +22,9 @@ export const enum result {
 
 export type Result = result.ok | result.sys | result.nocop
 
+export type uint = number
+export type timeOut = waitType.forever | waitType.polling | uint
 export enum waitType {
-    polling,
     forever,
+    polling,
 }

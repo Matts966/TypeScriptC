@@ -1,24 +1,27 @@
 import * as tkernel from "./tkernel"
 
-const taskA = new tkernel.Task((_ : Number) => {
-    for (var i = 0; i < 3; i++) {
-        console.log("*** tk_wup_tsk to tsk_b.")
-        // danger
-        // if (taskB.wakeUp() != -3)
-        if (taskB.wakeUp() != tkernel.result.ok)
-            console.log(" *** Failed in tk_wup_tsk to tsk_b");
+class TaskA extends tkernel.Task {
+    task() {
+        for (var i = 0; i < 3; i++) {
+            console.log("*** tk_wup_tsk to tsk_b.")
+            if (taskB.wakeUp() != tkernel.result.ok)
+                console.log(" *** Failed in tk_wup_tsk to tsk_b");
+        }
     }
-    return tkernel.result.ok
-})
+}
+class TaskB extends tkernel.Task {
+    task() {
+        console.log("*** tsk_b started.")
+        while (true) {
+            console.log("*** tsk_b is Waiting")
+            this.sleep(tkernel.waitType.forever)
+            console.log("*** tsk_b was Triggered")
+        }
+    }
+}
 
-const taskB = new tkernel.Task(() => {
-    console.log("*** tsk_b started.")
-    while (true) {
-        console.log("*** tsk_b is Waiting")
-        this.sleep(tkernel.waitType.forever)
-        console.log("*** tsk_b was Triggered")
-    }
-}, 2)
+let taskA = new TaskA()
+let taskB = new TaskB(2)
 
 if (taskA.start(0) != tkernel.result.ok) {
     console.log(" *** Failed in start of tsk_a.")
