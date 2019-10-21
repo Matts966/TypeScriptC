@@ -1,5 +1,6 @@
 import * as ts from 'typescript'
 
+// Initial file settings
 let fileNames = process.argv.slice(2)
 let program = ts.createProgram(fileNames, {
     target: ts.ScriptTarget.ESNext,
@@ -7,8 +8,10 @@ let program = ts.createProgram(fileNames, {
     strict: true,
 })
 
+// Type Checker initialization
 let checker = program.getTypeChecker()
 
+// Diagnostics
 let emitDiagnostics = (diagnostics : ts.Diagnostic[]) => {
     const diagHost : ts.FormatDiagnosticsHost = {
         getCanonicalFileName(f) { return f; },
@@ -17,7 +20,6 @@ let emitDiagnostics = (diagnostics : ts.Diagnostic[]) => {
     }
     console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost))
 }
-
 class Diagnostic implements ts.Diagnostic {
     category : ts.DiagnosticCategory
     code : number
@@ -38,6 +40,7 @@ let emitDiagnostic = (node : ts.Node, messageText : string) => {
     process.exit(1)
 }
 
+// Printer
 enum IndentType { tab = '\t', space = '\s' }
 type PrinterOptions = {
     indentLevel?: number,
@@ -66,11 +69,13 @@ class StdOutPrinter implements Printer {
 }
 let printer = new StdOutPrinter()
 
+// Utility
 let isGlobal = (node : ts.Node) => {
     if (ts.isSourceFile(node.parent)) return true
     return false
 }
 
+// Import Statement
 var tKernelImported = false
 let isImportTKernel = (i : ts.ImportDeclaration) => {
     let namedImport = i.importClause.namedBindings as ts.NamespaceImport
@@ -94,6 +99,7 @@ let handleImport = (node : ts.Node) => {
     }
 }
 
+// Expression
 let visitExpression = (expression : ts.Expression) => {
     if (ts.isCallExpression(expression)) {
         if (expression.expression.getText() == "console.log") {
@@ -118,6 +124,7 @@ let visitExpression = (expression : ts.Expression) => {
     process.stdout.write(expression.getText())
 }
 
+// Statement
 let isStatement = (node : ts.Node) : node is ts.Statement => {
     if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
         return true
@@ -191,6 +198,7 @@ let visitClassDeclaration = (classDeclaration : ts.ClassDeclaration) => {
     console.log(classDeclaration.members[0].getText())
 }
 
+// General visit function
 let visit = (node : ts.Node) => {
     if (handleImport(node)) return
     if (isStatement(node)) {
@@ -231,6 +239,7 @@ console.log(`EXPORT INT usermain( void ) {
 \tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 `)
 
+// Main loop
 for (const sourceFile of program.getSourceFiles()) {
     if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
         // Walk the tree to search for classes
