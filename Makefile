@@ -8,7 +8,7 @@ install-pre-commit-hook:
 	sudo ln -sf $(PWD)/config/hooks/pre-commit $(PWD)/.git/hooks/pre-commit
 test:
 	./test.sh
-test-task:
+t:
 	./test.sh ./tests/task.ts
 test-sample:
 	./test.sh ./sample_usermain.ts
