@@ -29,6 +29,7 @@ class Diagnostic implements ts.Diagnostic {
     messageText : string | ts.DiagnosticMessageChain
     constructor(category : ts.DiagnosticCategory, file : ts.SourceFile, start : number, length : number, messageText : string) {
         this.category = category
+        this.code = 0
         this.file = file
         this.start = start
         this.length = length
@@ -51,20 +52,27 @@ interface Printer {
     print : (s : string, p?: PrinterOptions) => void
 }
 class StdOutPrinter implements Printer {
-    options : PrinterOptions = {
+    private options : PrinterOptions = {
         indentLevel: 1,
         indentType: IndentType.tab,
         withNewLine: true,
     };
     print(s : string, p = this.options) {
-        if (p.indentLevel > 0) {
-            s = p.indentType.repeat(p.indentLevel) + s
+        if (p.indentLevel && p.indentLevel > 0) {
+            const t = p.indentType || IndentType.tab
+            s = t.repeat(p.indentLevel) + s
         }
         if (p.withNewLine) {
             console.log(s)
         } else {
             process.stdout.write(s)
         }
+    }
+    indent() {
+        ++this.options.indentLevel!
+    }
+    unindent() {
+        --this.options.indentLevel!
     }
 }
 let printer = new StdOutPrinter()
@@ -78,7 +86,9 @@ let isGlobal = (node : ts.Node) => {
 // Import Statement
 var tKernelImported = false
 let isImportTKernel = (i : ts.ImportDeclaration) => {
-    let namedImport = i.importClause.namedBindings as ts.NamespaceImport
+    const ic = i.importClause
+    if (!ic) return
+    let namedImport = ic.namedBindings as ts.NamespaceImport
     if (namedImport.name.text != "tkernel") {
         return false
     }
@@ -103,13 +113,11 @@ let handleImport = (node : ts.Node) => {
 let visitExpression = (expression : ts.Expression) => {
     if (ts.isCallExpression(expression)) {
         if (expression.expression.getText() == "console.log") {
-            printer.options.withNewLine = false
             printer.print("tm_putstring(\"" + expression.arguments.map((e) => {
                 if (ts.isLiteralExpression(e))
                     return e.text
                 else process.exit(1)
-            }) + "\\n\");")
-            printer.options.withNewLine = true
+            }) + "\\n\");", {withNewLine: false})
             return
         }
 
@@ -129,12 +137,18 @@ let isStatement = (node : ts.Node) : node is ts.Statement => {
     if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
         return true
     }
+    return false
 }
 let visitExpressionStatement = (expressionStatement : ts.ExpressionStatement) => {
     visitExpression(expressionStatement.expression)
     console.log()
 }
 let visitVariableStatement = (variableStatement : ts.VariableStatement) => {
+    for (const d of variableStatement.declarationList.declarations) {
+        const t = d.type
+        if (!t) continue
+        console.log("TYPE: " + t.getFullText)
+    }
     process.stdout.write(variableStatement.getText())
 }
 let visitStatement = (statement : ts.Statement) => {
@@ -168,31 +182,37 @@ let visitStatement = (statement : ts.Statement) => {
     }
     if (ts.isBlock(statement)) {
         printer.print("{", { indentLevel: 0 })
-        printer.options.indentLevel += 1
+        printer.indent()
         statement.statements.forEach((e) => {
             visitStatement(e)
         })
-        printer.options.indentLevel -= 1
+        printer.unindent()
         printer.print("}")
         return
     }
     emitDiagnostic(statement, "visitStatement: don't know how to handle" + ts.SyntaxKind[statement.kind])
     process.exit(1)
 }
+
 let visitClassDeclaration = (classDeclaration : ts.ClassDeclaration) => {
     if (!isGlobal(classDeclaration)) emitDiagnostic(classDeclaration, "ClassDeclarations is only allowed in global scope")
     let notAllowedDiagnostic = () => emitDiagnostic(classDeclaration, "ClassDeclarations other than tasks are not allowed")
-    if (classDeclaration.heritageClauses.length != 1 && classDeclaration.heritageClauses[0].types.length != 1) {
+    const heritage = classDeclaration.heritageClauses
+    if (!heritage || heritage.length != 1 && heritage[0].types.length != 1) {
         notAllowedDiagnostic()
+        return
     }
-    if (classDeclaration.heritageClauses[0].types[0].getText() != "tkernel.Task") {
+    if (heritage[0].types[0].getText() != "tkernel.Task") {
         notAllowedDiagnostic()
+        return
     }
     notAllowedDiagnostic = () => emitDiagnostic(classDeclaration, "Task Declaration should be only with task function")
     if (classDeclaration.members.length != 1) {
         notAllowedDiagnostic()
+        return
     }
-    if (classDeclaration.members[0].name.getText() != "task") {
+    const m = classDeclaration.members[0]
+    if (!m || !m.name || m.name.getText() != "task") {
         notAllowedDiagnostic()
     }
     console.log(classDeclaration.members[0].getText())
