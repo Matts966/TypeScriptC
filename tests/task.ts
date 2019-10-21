@@ -1,12 +1,14 @@
 import * as tkernel from "../tkernel"
 
-const taskA = new tkernel.Task((_ : Number) => {
-    for (var i = 0; i < 3; i++) {
-        console.log("output!");
+class TaskA extends tkernel.Task {
+    task = (_ : Number) => {
+        for (var i = 0; i < 3; i++) {
+            console.log("output!");
+        }
     }
-    return tkernel.result.ok
-})
+}
 
+const taskA = new TaskA()
 while (true) {
     taskA.start(1)
 }
