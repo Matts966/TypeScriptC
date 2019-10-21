@@ -1,11 +1,7 @@
-run: test-ts-node index.ts
-	ts-node index.ts sample_usermain.ts
-test-ts-node:
-	@type ts-node
-fmt: test-tsfmt
-	tsfmt -r *.ts
-test-tsfmt:
-	@type tsfmt
+run: index.ts
+	npx ts-node index.ts sample_usermain.ts
+fmt:
+	npx tsfmt -r *.ts
 rm:
 	rm *.js
 install-pre-commit-hook:

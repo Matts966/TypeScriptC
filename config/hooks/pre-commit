@@ -25,7 +25,7 @@ if [[ $FILES == '' ]]; then
 	exit 0
 fi
 
-if tsc --noEmit $FILES && tsfmt --verify $FILES ; then
+if npx tsc --noEmit $FILES && npx tsfmt --verify $FILES ; then
 	exit 0
 fi
 

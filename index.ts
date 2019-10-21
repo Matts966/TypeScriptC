@@ -4,7 +4,7 @@ let fileNames = process.argv.slice(2)
 let program = ts.createProgram(fileNames, {
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.ESNext,
-    noImplicitAny: true
+    strict: true,
 })
 
 let checker = program.getTypeChecker()
@@ -102,7 +102,7 @@ let visitExpression = (expression : ts.Expression) => {
                 if (ts.isLiteralExpression(e))
                     return e.text
                 else process.exit(1)
-            }) + "\")")
+            }) + "\\n\");")
             printer.options.withNewLine = true
             return
         }
