@@ -4,7 +4,7 @@ let fileNames = process.argv.slice(2)
 let program = ts.createProgram(fileNames, {
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.ESNext,
-    noImplicitAny: true
+    strict: true,
 })
 
 let checker = program.getTypeChecker()
