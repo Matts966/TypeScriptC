@@ -4,9 +4,9 @@ for t in $(ls ./tests/*.ts); do
    if [[ $(ls $filename.c) = "" ]]; then
      continue
    fi
-   if [[ $(ts-node index.ts $t) = $(cat $filename.c) ]]; then
+   if [[ $(npx ts-node index.ts $t) = $(cat $filename.c) ]]; then
      echo $filename: test succeeded 😎
-   elif
+   else
      echo $filename: test failed 💀
    fi
 done
