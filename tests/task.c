@@ -15,13 +15,13 @@ EXPORT void tsk_a(INT stacd, VP exinf) {
 }
 
 EXPORT INT usermain( void ) {
-    T_CTSK t_ctsk;
+	T_CTSK t_ctsk;
 	ID objid;
 	t_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 	t_ctsk.stksz = 1024;
 
 	t_ctsk.task = tsk_a;
-    while(1) {
+	while(1) {
 		tk_sta_tsk( ObjID[TSK_A], 0 );
-    }
+	}
 }
