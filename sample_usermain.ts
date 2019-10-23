@@ -1,15 +1,16 @@
 import * as tkernel from "./tkernel"
 
-class TaskA extends tkernel.Task {
+const taskA = new class TaskA extends tkernel.Task {
     task() {
-        for (var i = 0; i < 3; i++) {
+        for (let i = 0; i < 3; i++) {
             console.log("*** tk_wup_tsk to tsk_b.")
             if (taskB.wakeUp() != tkernel.result.ok)
                 console.log(" *** Failed in tk_wup_tsk to tsk_b");
         }
     }
-}
-class TaskB extends tkernel.Task {
+}()
+
+const taskB = new class TaskB extends tkernel.Task {
     task() {
         console.log("*** tsk_b started.")
         while (true) {
@@ -18,10 +19,7 @@ class TaskB extends tkernel.Task {
             console.log("*** tsk_b was Triggered")
         }
     }
-}
-
-const taskA = new TaskA()
-const taskB = new TaskB(2)
+}(2)
 
 if (taskA.start(0) != tkernel.result.ok) {
     console.log(" *** Failed in start of tsk_a.")
