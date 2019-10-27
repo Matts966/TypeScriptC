@@ -1,7 +1,7 @@
-export abstract class Task implements Task {
-    abstract task(info : number) : void
-    stackSize : number = 1024
-    priority : number = 1
+export abstract class Task {
+    protected abstract task(info : number) : void
+    private stackSize : number = 1024
+    private priority : number = 1
     static readonly id : number
     public start(info : number) { return result.ok }
     protected sleep(t : timeOut) { return result.ok }

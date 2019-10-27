@@ -1,7 +1,7 @@
 import * as tkernel from "./tkernel"
 
 const taskA = new class TaskA extends tkernel.Task {
-    task() {
+    protected task() {
         for (let i = 0; i < 3; i++) {
             console.log("*** tk_wup_tsk to tsk_b.")
             if (taskB.wakeUp() != tkernel.result.ok)
@@ -11,7 +11,7 @@ const taskA = new class TaskA extends tkernel.Task {
 }()
 
 const taskB = new class TaskB extends tkernel.Task {
-    task() {
+    protected task() {
         console.log("*** tsk_b started.")
         while (true) {
             console.log("*** tsk_b is Waiting")
