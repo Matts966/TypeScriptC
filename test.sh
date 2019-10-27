@@ -5,7 +5,7 @@ test() {
     return 1
   fi
   compiled=$(mktemp)
-  ts-node --pretty index.ts $1 > $compiled
+  npx ts-node --pretty src/index.ts $1 > $compiled
   answer=$(mktemp)
   cat $filename.c > $answer
   type colordiff > /dev/null 2>&1 && cmd=colordiff || cmd=diff
