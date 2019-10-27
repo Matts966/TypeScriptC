@@ -1,5 +1,5 @@
 
-import ts, { isSourceFile } from 'typescript'
+import * as ts from 'typescript'
 import { c } from './c'
 
 namespace typescriptc {
@@ -276,10 +276,18 @@ namespace typescriptc {
                 const symbol = checker.getSymbolAtLocation(sourceFile)!
                 const src = symbol.valueDeclaration
                 if (ts.isSourceFile(src)) {
-                    src
+                    for (const node of src.statements) {
+                        // TODO: handle declarations for later use
+                        if (ts.isClassDeclaration(node)) {
+
+                        }
+                        if (ts.isVariableStatement(node)) {
+
+                        }
+                    }
                 }
 
-                // Walk the tree to search for classes
+                // Walk the tree to search source code.
                 ts.forEachChild(sourceFile, visit)
             }
         }
