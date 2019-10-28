@@ -1,9 +1,9 @@
-run-node:
-	npx ts-node ./src/index.ts sample_usermain.ts
+run: src/index.ts build
+	node ./dist/index.js sample_usermain.ts
 build: tsconfig.json
 	npx tsc -p tsconfig.json
-run: src/index.ts
-	node ./dist/index.js sample_usermain.ts
+run-node:
+	npx ts-node ./src/index.ts sample_usermain.ts
 clean: dist
 	rm dist/*
 	rm *.js
