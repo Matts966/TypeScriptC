@@ -44,6 +44,9 @@ var typescriptc;
         emitDiagnostics([new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)]);
         process.exit(1);
     };
+    var getDiagnostic = function (node, messageText) {
+        return new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText);
+    };
     // Printer
     var IndentType;
     (function (IndentType) {
@@ -55,7 +58,7 @@ var typescriptc;
             this.options = {
                 indentLevel: 1,
                 indentType: IndentType.tab,
-                withNewLine: true
+                withNewLine: false
             };
         }
         StdOutPrinter.prototype.print = function (s, p) {
@@ -70,12 +73,22 @@ var typescriptc;
             else {
                 process.stdout.write(s);
             }
+            return this;
+        };
+        StdOutPrinter.prototype.printLn = function (s) {
+            var nl = this.options.withNewLine;
+            this.options.withNewLine = true;
+            this.print(s, this.options);
+            this.options.withNewLine = nl;
+            return this;
         };
         StdOutPrinter.prototype.indent = function () {
             ++this.options.indentLevel;
+            return this;
         };
         StdOutPrinter.prototype.unindent = function () {
             --this.options.indentLevel;
+            return this;
         };
         return StdOutPrinter;
     }());
@@ -135,7 +148,7 @@ var typescriptc;
     };
     // Statement
     var isStatement = function (node) {
-        if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
+        if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isForStatement || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
             return true;
         }
         return false;
@@ -145,13 +158,15 @@ var typescriptc;
         console.log();
     };
     var visitVariableStatement = function (variableStatement) {
-        for (var _i = 0, _a = variableStatement.declarationList.declarations; _i < _a.length; _i++) {
+        visitVariableDeclarationList(variableStatement.declarationList);
+    };
+    var visitVariableDeclarationList = function (variableDeclarationList) {
+        for (var _i = 0, _a = variableDeclarationList.declarations; _i < _a.length; _i++) {
             var d = _a[_i];
             var type = checker.getTypeAtLocation(d.type);
             // const typeArg = type.typeArguments![0];
             console.log(type.getDefault());
         }
-        process.stdout.write(variableStatement.getText());
     };
     var visitStatement = function (statement) {
         if (ts.isExpressionStatement(statement)) {
@@ -165,22 +180,52 @@ var typescriptc;
             return;
         }
         if (ts.isIfStatement(statement)) {
-            process.stdout.write("if (");
+            printer.print("if (");
             visitExpression(statement.expression);
-            process.stdout.write(") ");
+            printer.printLn(") {").indent();
             visitStatement(statement.thenStatement);
+            printer.unindent().print("}");
+            // TODO: handle else if
             if (statement.elseStatement) {
+                printer.printLn(" else {").indent();
                 visitStatement(statement.elseStatement);
+                printer.unindent().print("}");
             }
             console.log();
             return;
         }
         if (ts.isWhileStatement(statement)) {
-            process.stdout.write("while (");
+            printer.print("while (");
             visitExpression(statement.expression);
-            process.stdout.write(") ");
+            printer.printLn(") {").indent();
             visitStatement(statement.statement);
+            printer.unindent().printLn("}");
             return;
+        }
+        if (ts.isForStatement(statement)) {
+            printer.print("for (");
+            var ini = statement.initializer;
+            if (ini) {
+                if (ts.isVariableDeclarationList(ini)) {
+                    visitVariableDeclarationList(ini);
+                }
+                else {
+                    visitExpression(ini);
+                }
+            }
+            printer.print("; ");
+            var cond = statement.condition;
+            if (cond) {
+                visitExpression(cond);
+            }
+            printer.print("; ");
+            var incre = statement.incrementor;
+            if (incre) {
+                visitExpression(incre);
+            }
+            printer.print(") {").indent();
+            visitStatement(statement.statement);
+            printer.unindent().printLn("}");
         }
         if (ts.isBlock(statement)) {
             printer.print("{", { indentLevel: 0 });
@@ -192,7 +237,7 @@ var typescriptc;
             printer.print("}");
             return;
         }
-        emitDiagnostic(statement, "visitStatement: don't know how to handle" + ts.SyntaxKind[statement.kind]);
+        emitDiagnostic(statement, "visitStatement: don't know how to handle " + ts.SyntaxKind[statement.kind]);
         process.exit(1);
     };
     var visitClassDeclaration = function (classDeclaration) {
@@ -221,9 +266,13 @@ var typescriptc;
     };
     // General visit function
     var visit = function (node) {
+        if (node.kind == ts.SyntaxKind.EndOfFileToken) {
+            return;
+        }
         if (handleImport(node))
             return;
         if (isStatement(node)) {
+            console.log("handle sta");
             return visitStatement(node);
         }
         if (ts.isFunctionDeclaration(node)) {
@@ -234,11 +283,8 @@ var typescriptc;
         if (ts.isClassDeclaration(node)) {
             return visitClassDeclaration(node);
         }
-        if (node.kind == ts.SyntaxKind.EndOfFileToken) {
-            return;
-        }
         //TODO: allow only constant task declaration
-        emitDiagnostic(node, "visit: don't know how to handle" + ts.SyntaxKind[node.kind]);
+        emitDiagnostic(node, "visit: don't know how to handle " + ts.SyntaxKind[node.kind]);
         process.exit(1);
     };
     typescriptc.main = function () {

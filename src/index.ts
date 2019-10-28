@@ -44,6 +44,9 @@ namespace typescriptc {
         emitDiagnostics([new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)])
         process.exit(1)
     }
+    const getDiagnostic = (node : ts.Node, messageText : string) => {
+        return new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)
+    }
 
     // Printer
     enum IndentType { tab = '\t', space = '\s' }
@@ -160,7 +163,7 @@ namespace typescriptc {
     let visitVariableStatement = (variableStatement : ts.VariableStatement) => {
         visitVariableDeclarationList(variableStatement.declarationList)
     }
-    const visitVariableDeclarationList = (variableDeclarationList: ts.VariableDeclarationList) => {
+    const visitVariableDeclarationList = (variableDeclarationList : ts.VariableDeclarationList) => {
         for (const d of variableDeclarationList.declarations) {
             const type = checker.getTypeAtLocation(d.type!) as ts.TypeReference;
             // const typeArg = type.typeArguments![0];
@@ -235,7 +238,7 @@ namespace typescriptc {
             printer.print("}")
             return
         }
-        emitDiagnostic(statement, "visitStatement: don't know how to handle" + ts.SyntaxKind[statement.kind])
+        emitDiagnostic(statement, "visitStatement: don't know how to handle " + ts.SyntaxKind[statement.kind])
         process.exit(1)
     }
 
@@ -265,8 +268,12 @@ namespace typescriptc {
 
     // General visit function
     let visit = (node : ts.Node) => {
+        if (node.kind == ts.SyntaxKind.EndOfFileToken) {
+            return
+        }
         if (handleImport(node)) return
         if (isStatement(node)) {
+            console.log("handle sta")
             return visitStatement(node)
         }
         if (ts.isFunctionDeclaration(node)) {
@@ -277,15 +284,10 @@ namespace typescriptc {
         if (ts.isClassDeclaration(node)) {
             return visitClassDeclaration(node)
         }
-        if (node.kind == ts.SyntaxKind.EndOfFileToken) {
-            return
-        }
         //TODO: allow only constant task declaration
-        emitDiagnostic(node, "visit: don't know how to handle" + ts.SyntaxKind[node.kind])
+        emitDiagnostic(node, "visit: don't know how to handle " + ts.SyntaxKind[node.kind])
         process.exit(1)
     }
-
-
 
     export const main = () => {
         const cnp = new c.Program()
