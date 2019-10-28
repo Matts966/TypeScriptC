@@ -27,7 +27,9 @@ var typescriptc;
     var program = ts.createProgram(fileNames, {
         target: ts.ScriptTarget.ESNext,
         module: ts.ModuleKind.ESNext,
-        strict: true
+        strict: true,
+        strictNullChecks: true,
+        noImplicitAny: true
     });
     // Type Checker initialization
     var checker = program.getTypeChecker();
@@ -188,9 +190,40 @@ var typescriptc;
     var visitVariableDeclarationList = function (variableDeclarationList) {
         for (var _i = 0, _a = variableDeclarationList.declarations; _i < _a.length; _i++) {
             var d = _a[_i];
-            var type = checker.getTypeAtLocation(d.type);
+            if (!d.initializer) {
+                emitDiagnostic(d, "lack of initialization");
+                process.exit(1);
+            }
+            var expr = d.initializer;
+            if (ts.isNewExpression(expr)) {
+                if (ts.isClassExpression(expr.expression)) {
+                    var sym = checker.getSymbolAtLocation(expr.expression.name);
+                    var type = checker.getDeclaredTypeOfSymbol(sym);
+                    // console.log(checker.typeToString(type))
+                    // console.log(type.isClass())
+                    var onlyTaskAllowedMessage = "classes that extends only Task are allowd";
+                    var baseTypes = type.getBaseTypes();
+                    if (!baseTypes || baseTypes.length != 1) {
+                        emitDiagnostic(d, onlyTaskAllowedMessage);
+                        process.exit(1);
+                    }
+                    if (checker.typeToString(baseTypes[0]) != "Task") {
+                        emitDiagnostic(d, onlyTaskAllowedMessage);
+                        process.exit(1);
+                    }
+                    console.log("class expr!");
+                    continue;
+                }
+            }
+            emitDiagnostic(d, "don't know how to handle this initializer " + d.initializer);
+            process.exit(1);
+            // const sym = checker.getSymbolAtLocation(d.name)
+            // const type = checker.getDeclaredTypeOfSymbol(sym!)
+            // console.log(checker.typeToString(type))
+            // const sym = checker.getSymbolAtLocation(d)
+            // const type = checker.getDeclaredTypeOfSymbol(sym!)
+            // const type = checker.getTypeAtLocation(d) as ts.TypeReference;
             // const typeArg = type.typeArguments![0];
-            console.log(type.getDefault());
         }
     };
     var visitStatement = function (statement) {
