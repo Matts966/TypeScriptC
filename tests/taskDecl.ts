@@ -1,6 +1,6 @@
 import * as tkernel from "../tkernel"
 
-const taskA = new class TaskA extends tkernel.Task {
+class TaskA extends tkernel.Task {
     task = (_ : Number) => {
         for (var i = 0; i < 3; i++) {
             console.log("output!");
@@ -8,6 +8,7 @@ const taskA = new class TaskA extends tkernel.Task {
     }
 }
 
+const taskA = new TaskA()
 while (true) {
     taskA.start(1)
 }
