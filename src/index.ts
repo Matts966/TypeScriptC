@@ -1,6 +1,7 @@
 
 import * as ts from 'typescript'
 import { c } from './c'
+import { stat } from 'fs'
 
 namespace typescriptc {
     // Initial file settings
@@ -58,7 +59,7 @@ namespace typescriptc {
         private options : PrinterOptions = {
             indentLevel: 1,
             indentType: IndentType.tab,
-            withNewLine: true,
+            withNewLine: false,
         };
         print(s : string, p = this.options) {
             if (p.indentLevel && p.indentLevel > 0) {
@@ -70,12 +71,22 @@ namespace typescriptc {
             } else {
                 process.stdout.write(s)
             }
+            return this
+        }
+        printLn(s : string) {
+            const nl = this.options.withNewLine
+            this.options.withNewLine = true
+            this.print(s, this.options)
+            this.options.withNewLine = nl
+            return this
         }
         indent() {
             ++this.options.indentLevel!
+            return this
         }
         unindent() {
             --this.options.indentLevel!
+            return this
         }
     }
     let printer = new StdOutPrinter()
@@ -137,7 +148,7 @@ namespace typescriptc {
 
     // Statement
     let isStatement = (node : ts.Node) : node is ts.Statement => {
-        if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
+        if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isForStatement || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
             return true
         }
         return false
@@ -147,12 +158,14 @@ namespace typescriptc {
         console.log()
     }
     let visitVariableStatement = (variableStatement : ts.VariableStatement) => {
-        for (const d of variableStatement.declarationList.declarations) {
+        visitVariableDeclarationList(variableStatement.declarationList)
+    }
+    const visitVariableDeclarationList = (variableDeclarationList: ts.VariableDeclarationList) => {
+        for (const d of variableDeclarationList.declarations) {
             const type = checker.getTypeAtLocation(d.type!) as ts.TypeReference;
             // const typeArg = type.typeArguments![0];
             console.log(type.getDefault())
         }
-        process.stdout.write(variableStatement.getText())
     }
     let visitStatement = (statement : ts.Statement) => {
         if (ts.isExpressionStatement(statement)) {
@@ -166,22 +179,51 @@ namespace typescriptc {
             return
         }
         if (ts.isIfStatement(statement)) {
-            process.stdout.write("if (")
+            printer.print("if (")
             visitExpression(statement.expression)
-            process.stdout.write(") ")
+            printer.printLn(") {").indent()
             visitStatement(statement.thenStatement)
+            printer.unindent().print("}")
+            // TODO: handle else if
             if (statement.elseStatement) {
+                printer.printLn(" else {").indent()
                 visitStatement(statement.elseStatement)
+                printer.unindent().print("}")
             }
             console.log()
             return
         }
         if (ts.isWhileStatement(statement)) {
-            process.stdout.write("while (")
+            printer.print("while (")
             visitExpression(statement.expression)
-            process.stdout.write(") ")
+            printer.printLn(") {").indent()
             visitStatement(statement.statement)
+            printer.unindent().printLn("}")
             return
+        }
+        if (ts.isForStatement(statement)) {
+            printer.print("for (")
+            const ini = statement.initializer
+            if (ini) {
+                if (ts.isVariableDeclarationList(ini)) {
+                    visitVariableDeclarationList(ini)
+                } else {
+                    visitExpression(ini)
+                }
+            }
+            printer.print("; ")
+            const cond = statement.condition
+            if (cond) {
+                visitExpression(cond)
+            }
+            printer.print("; ")
+            const incre = statement.incrementor
+            if (incre) {
+                visitExpression(incre)
+            }
+            printer.print(") {").indent()
+            visitStatement(statement.statement)
+            printer.unindent().printLn("}")
         }
         if (ts.isBlock(statement)) {
             printer.print("{", { indentLevel: 0 })

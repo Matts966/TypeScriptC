@@ -1,17 +1,21 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
 };
 exports.__esModule = true;
-var typescript_1 = __importDefault(require("typescript"));
+var ts = __importStar(require("typescript"));
 var c_1 = require("./c");
 var typescriptc;
 (function (typescriptc) {
     // Initial file settings
     var fileNames = process.argv.slice(2);
-    var program = typescript_1["default"].createProgram(fileNames, {
-        target: typescript_1["default"].ScriptTarget.ESNext,
-        module: typescript_1["default"].ModuleKind.ESNext,
+    var program = ts.createProgram(fileNames, {
+        target: ts.ScriptTarget.ESNext,
+        module: ts.ModuleKind.ESNext,
         strict: true
     });
     // Type Checker initialization
@@ -23,7 +27,7 @@ var typescriptc;
             getCurrentDirectory: function () { return "."; },
             getNewLine: function () { return "\n"; }
         };
-        console.log(typescript_1["default"].formatDiagnosticsWithColorAndContext(diagnostics, diagHost));
+        console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, diagHost));
     };
     var Diagnostic = /** @class */ (function () {
         function Diagnostic(category, file, start, length, messageText) {
@@ -37,7 +41,7 @@ var typescriptc;
         return Diagnostic;
     }());
     var emitDiagnostic = function (node, messageText) {
-        emitDiagnostics([new Diagnostic(typescript_1["default"].DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)]);
+        emitDiagnostics([new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)]);
         process.exit(1);
     };
     // Printer
@@ -78,7 +82,7 @@ var typescriptc;
     var printer = new StdOutPrinter();
     // Utility
     var isGlobal = function (node) {
-        if (typescript_1["default"].isSourceFile(node.parent))
+        if (ts.isSourceFile(node.parent))
             return true;
         return false;
     };
@@ -96,7 +100,7 @@ var typescriptc;
         return true;
     };
     var handleImport = function (node) {
-        if (typescript_1["default"].isImportDeclaration(node)) {
+        if (ts.isImportDeclaration(node)) {
             if (!isImportTKernel(node)) {
                 emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`');
                 process.exit(1);
@@ -110,10 +114,10 @@ var typescriptc;
     };
     // Expression
     var visitExpression = function (expression) {
-        if (typescript_1["default"].isCallExpression(expression)) {
+        if (ts.isCallExpression(expression)) {
             if (expression.expression.getText() == "console.log") {
                 printer.print("tm_putstring(\"" + expression.arguments.map(function (e) {
-                    if (typescript_1["default"].isLiteralExpression(e))
+                    if (ts.isLiteralExpression(e))
                         return e.text;
                     else
                         process.exit(1);
@@ -131,7 +135,7 @@ var typescriptc;
     };
     // Statement
     var isStatement = function (node) {
-        if (typescript_1["default"].isExpressionStatement(node) || typescript_1["default"].isIfStatement(node) || typescript_1["default"].isWhileStatement(node) || typescript_1["default"].isVariableStatement(node) || typescript_1["default"].isReturnStatement(node) || typescript_1["default"].isBlock(node)) {
+        if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
             return true;
         }
         return false;
@@ -150,17 +154,17 @@ var typescriptc;
         process.stdout.write(variableStatement.getText());
     };
     var visitStatement = function (statement) {
-        if (typescript_1["default"].isExpressionStatement(statement)) {
+        if (ts.isExpressionStatement(statement)) {
             visitExpressionStatement(statement);
             return;
         }
-        if (typescript_1["default"].isVariableStatement(statement)) {
+        if (ts.isVariableStatement(statement)) {
             console.log("VariableStatement: ");
             visitVariableStatement(statement);
             console.log();
             return;
         }
-        if (typescript_1["default"].isIfStatement(statement)) {
+        if (ts.isIfStatement(statement)) {
             process.stdout.write("if (");
             visitExpression(statement.expression);
             process.stdout.write(") ");
@@ -171,14 +175,14 @@ var typescriptc;
             console.log();
             return;
         }
-        if (typescript_1["default"].isWhileStatement(statement)) {
+        if (ts.isWhileStatement(statement)) {
             process.stdout.write("while (");
             visitExpression(statement.expression);
             process.stdout.write(") ");
             visitStatement(statement.statement);
             return;
         }
-        if (typescript_1["default"].isBlock(statement)) {
+        if (ts.isBlock(statement)) {
             printer.print("{", { indentLevel: 0 });
             printer.indent();
             statement.statements.forEach(function (e) {
@@ -188,7 +192,7 @@ var typescriptc;
             printer.print("}");
             return;
         }
-        emitDiagnostic(statement, "visitStatement: don't know how to handle" + typescript_1["default"].SyntaxKind[statement.kind]);
+        emitDiagnostic(statement, "visitStatement: don't know how to handle" + ts.SyntaxKind[statement.kind]);
         process.exit(1);
     };
     var visitClassDeclaration = function (classDeclaration) {
@@ -222,26 +226,26 @@ var typescriptc;
         if (isStatement(node)) {
             return visitStatement(node);
         }
-        if (typescript_1["default"].isFunctionDeclaration(node)) {
+        if (ts.isFunctionDeclaration(node)) {
             console.log("FunctionDeclaration: " + node.body);
             console.log();
             return;
         }
-        if (typescript_1["default"].isClassDeclaration(node)) {
+        if (ts.isClassDeclaration(node)) {
             return visitClassDeclaration(node);
         }
-        if (node.kind == typescript_1["default"].SyntaxKind.EndOfFileToken) {
+        if (node.kind == ts.SyntaxKind.EndOfFileToken) {
             return;
         }
         //TODO: allow only constant task declaration
-        emitDiagnostic(node, "visit: don't know how to handle" + typescript_1["default"].SyntaxKind[node.kind]);
+        emitDiagnostic(node, "visit: don't know how to handle" + ts.SyntaxKind[node.kind]);
         process.exit(1);
     };
     typescriptc.main = function () {
         var cnp = new c_1.c.Program();
         cnp.includes.push();
         // Apply type check
-        var allDiagnostics = typescript_1["default"].getPreEmitDiagnostics(program)
+        var allDiagnostics = ts.getPreEmitDiagnostics(program)
             .concat();
         if (allDiagnostics.length > 0) {
             emitDiagnostics(allDiagnostics);
@@ -256,11 +260,18 @@ var typescriptc;
                 // using checker sample
                 var symbol = checker.getSymbolAtLocation(sourceFile);
                 var src = symbol.valueDeclaration;
-                if (typescript_1["default"].isSourceFile(src)) {
-                    src;
+                if (ts.isSourceFile(src)) {
+                    for (var _b = 0, _c = src.statements; _b < _c.length; _b++) {
+                        var node = _c[_b];
+                        // TODO: handle declarations for later use
+                        if (ts.isClassDeclaration(node)) {
+                        }
+                        if (ts.isVariableStatement(node)) {
+                        }
+                    }
                 }
-                // Walk the tree to search for classes
-                typescript_1["default"].forEachChild(sourceFile, visit);
+                // Walk the tree to search source code.
+                ts.forEachChild(sourceFile, visit);
             }
         }
         console.log("}\n");
