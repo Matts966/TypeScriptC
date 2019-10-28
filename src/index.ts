@@ -273,7 +273,6 @@ namespace typescriptc {
         }
         if (handleImport(node)) return
         if (isStatement(node)) {
-            console.log("handle sta")
             return visitStatement(node)
         }
         if (ts.isFunctionDeclaration(node)) {
