@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -77,12 +88,15 @@ var typescriptc;
         };
         StdOutPrinter.prototype.printLn = function (s, p) {
             if (p === void 0) { p = this.options; }
-            var opt = this.options;
+            var opt = __assign({}, this.options);
             this.options = p;
             this.options.withNewLine = true;
             this.print(s, this.options);
             this.options = opt;
             return this;
+        };
+        StdOutPrinter.prototype.printWithoutSpace = function (s) {
+            process.stdout.write(s);
         };
         StdOutPrinter.prototype.indent = function () {
             ++this.options.indentLevel;
@@ -141,6 +155,7 @@ var typescriptc;
                     return;
                 case "process.exit":
                     printer.print("return " + expression.arguments[0].getText() + ";");
+                    return;
                 // TODO: handle arguements
                 default:
                     printer.print(expression.expression.getText() + "();");
@@ -191,7 +206,7 @@ var typescriptc;
         if (ts.isIfStatement(statement)) {
             printer.print("if (");
             visitExpression(statement.expression);
-            printer.print(") ");
+            printer.printWithoutSpace(") ");
             visitStatement(statement.thenStatement);
             // TODO: handle else if
             if (statement.elseStatement) {
@@ -203,7 +218,7 @@ var typescriptc;
         if (ts.isWhileStatement(statement)) {
             printer.print("while (");
             visitExpression(statement.expression);
-            printer.print(") ");
+            printer.printWithoutSpace(") ");
             visitStatement(statement.statement);
             return;
         }
@@ -228,7 +243,7 @@ var typescriptc;
             if (incre) {
                 visitExpression(incre);
             }
-            printer.print(") ");
+            printer.printWithoutSpace(") ");
             visitStatement(statement.statement);
         }
         if (ts.isBlock(statement)) {

@@ -77,12 +77,15 @@ namespace typescriptc {
             return this
         }
         printLn(s : string, p = this.options) {
-            const opt = this.options
+            const opt = { ...this.options }
             this.options = p
             this.options.withNewLine = true
             this.print(s, this.options)
             this.options = opt
             return this
+        }
+        printWithoutSpace(s : string) {
+            process.stdout.write(s)
         }
         indent() {
             ++this.options.indentLevel!
@@ -193,7 +196,7 @@ namespace typescriptc {
         if (ts.isIfStatement(statement)) {
             printer.print("if (")
             visitExpression(statement.expression)
-            printer.print(") ")
+            printer.printWithoutSpace(") ")
             visitStatement(statement.thenStatement)
             // TODO: handle else if
             if (statement.elseStatement) {
@@ -205,7 +208,7 @@ namespace typescriptc {
         if (ts.isWhileStatement(statement)) {
             printer.print("while (")
             visitExpression(statement.expression)
-            printer.print(") ")
+            printer.printWithoutSpace(") ")
             visitStatement(statement.statement)
             return
         }
@@ -229,7 +232,7 @@ namespace typescriptc {
             if (incre) {
                 visitExpression(incre)
             }
-            printer.print(") ")
+            printer.printWithoutSpace(") ")
             visitStatement(statement.statement)
         }
         if (ts.isBlock(statement)) {
