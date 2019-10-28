@@ -141,6 +141,7 @@ var typescriptc;
                     return;
                 case "process.exit":
                     printer.print("return " + expression.arguments[0].getText() + ";");
+                // TODO: handle arguements
                 default:
                     printer.print(expression.expression.getText() + "();");
             }

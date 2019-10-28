@@ -140,6 +140,7 @@ namespace typescriptc {
                     return
                 case "process.exit":
                     printer.print("return " + expression.arguments[0].getText() + ";")
+                    return
                 // TODO: handle arguements
                 default:
                     printer.print(expression.expression.getText() + "();")
