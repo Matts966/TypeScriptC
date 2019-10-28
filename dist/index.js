@@ -130,20 +130,27 @@ var typescriptc;
     // Expression
     var visitExpression = function (expression) {
         if (ts.isCallExpression(expression)) {
-            if (expression.expression.getText() == "console.log") {
-                printer.print("tm_putstring(\"" + expression.arguments.map(function (e) {
-                    if (ts.isLiteralExpression(e))
-                        return e.text;
-                    else
-                        process.exit(1);
-                }) + "\\n\");", { withNewLine: false });
-                return;
+            switch (expression.expression.getText()) {
+                case "console.log":
+                    printer.print("tm_putstring(\"" + expression.arguments.map(function (e) {
+                        if (ts.isLiteralExpression(e))
+                            return e.text;
+                        else
+                            process.exit(1);
+                    }) + "\\n\");");
+                    return;
+                case "process.exit":
+                    printer.print("return " + expression.arguments[0].getText() + ";");
+                default:
+                    printer.print(expression.expression.getText() + "();");
             }
-            for (var _i = 0, _a = expression.arguments; _i < _a.length; _i++) {
-                var node = _a[_i];
-                process.stdout.write(checker.typeToString(checker.getTypeAtLocation(node)) + " ");
-            }
-            console.log(");");
+            // TODO: Add type map
+            // for (const arg of expression.arguments) {
+            //     process.stdout.write(checker.typeToString(checker.getTypeAtLocation(node)) + " ")
+            //     printer.print(arg.getText(), { indentLevel: 0 })
+            //     console.log(arg.getText())
+            // }
+            // printer.printLn(");")
             return;
         }
         process.stdout.write(expression.getText());
