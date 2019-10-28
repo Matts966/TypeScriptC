@@ -76,11 +76,12 @@ namespace typescriptc {
             }
             return this
         }
-        printLn(s : string) {
-            const nl = this.options.withNewLine
+        printLn(s : string, p = this.options) {
+            const opt = this.options
+            this.options = p
             this.options.withNewLine = true
             this.print(s, this.options)
-            this.options.withNewLine = nl
+            this.options = opt
             return this
         }
         indent() {
@@ -178,30 +179,25 @@ namespace typescriptc {
         if (ts.isVariableStatement(statement)) {
             console.log("VariableStatement: ")
             visitVariableStatement(statement)
-            console.log()
             return
         }
         if (ts.isIfStatement(statement)) {
             printer.print("if (")
             visitExpression(statement.expression)
-            printer.printLn(") {").indent()
+            printer.print(") ")
             visitStatement(statement.thenStatement)
-            printer.unindent().print("}")
             // TODO: handle else if
             if (statement.elseStatement) {
-                printer.printLn(" else {").indent()
+                printer.print(" else ")
                 visitStatement(statement.elseStatement)
-                printer.unindent().print("}")
             }
-            console.log()
             return
         }
         if (ts.isWhileStatement(statement)) {
             printer.print("while (")
             visitExpression(statement.expression)
-            printer.printLn(") {").indent()
+            printer.print(") ")
             visitStatement(statement.statement)
-            printer.unindent().printLn("}")
             return
         }
         if (ts.isForStatement(statement)) {
@@ -224,18 +220,17 @@ namespace typescriptc {
             if (incre) {
                 visitExpression(incre)
             }
-            printer.print(") {").indent()
+            printer.print(") ")
             visitStatement(statement.statement)
-            printer.unindent().printLn("}")
         }
         if (ts.isBlock(statement)) {
-            printer.print("{", { indentLevel: 0 })
+            printer.printLn("{", { indentLevel: 0 })
             printer.indent()
             statement.statements.forEach((e) => {
                 visitStatement(e)
             })
             printer.unindent()
-            printer.print("}")
+            printer.printLn("}")
             return
         }
         emitDiagnostic(statement, "visitStatement: don't know how to handle " + ts.SyntaxKind[statement.kind])
