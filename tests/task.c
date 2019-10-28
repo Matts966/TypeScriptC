@@ -2,10 +2,10 @@
 #include <tm/tmonitor.h>
 #include <libstr.h>
 
-EXPORT void tsk_a(INT stacd, VP exinf);
 typedef enum { TSK_A, OBJ_KIND_NUM } OBJ_KIND;
 EXPORT ID ObjID[OBJ_KIND_NUM];
 
+EXPORT void tsk_a(INT stacd, VP exinf);
 EXPORT void tsk_a(INT stacd, VP exinf) {
 	int i;
 	for ( i = 0; i < 3; i++ ) {
