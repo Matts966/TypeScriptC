@@ -192,7 +192,7 @@ namespace typescriptc {
                     const type = checker.getDeclaredTypeOfSymbol(sym!)
                     // console.log(checker.typeToString(type))
                     // console.log(type.isClass())
-                    const onlyTaskAllowedMessage = "classes that extends only Task are allowd"
+                    const onlyTaskAllowedMessage = "classes that extends only Task are allowed"
                     const baseTypes = type.getBaseTypes()
                     if (!baseTypes || baseTypes.length != 1) {
                         emitDiagnostic(d, onlyTaskAllowedMessage)
@@ -202,7 +202,32 @@ namespace typescriptc {
                         emitDiagnostic(d, onlyTaskAllowedMessage)
                         process.exit(1)
                     }
-                    console.log("class expr!")
+                    if (!expr.arguments) {
+                        printer.printLn("t_ctsk.stksz = 1024;")
+                        printer.printLn("t_ctsk.itskpri = 1;")
+                    }
+                    for (const key in expr.arguments!) {
+                        switch (key) {
+                            case "priority":
+                                printer.print("t_ctsk.itskpri = ")
+                                visitExpression(expr.arguments[key])
+                                printer.printLn(";")
+                            case "stackSize":
+                                printer.print("t_ctsk.stksz = ")
+                                visitExpression(expr.arguments[key])
+                                printer.printLn(";")
+                            default:
+                                emitDiagnostic(expr, "invalid argument")
+                                process.exit(1)
+                        }
+                    }
+                    printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + "\");")
+                    printer.printLn("t_ctsk.task = " + ";")
+                    printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {")
+                    printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + ".\\n\");")
+                    printer.printLn("return 1;")
+                    printer.unindent().printLn("}")
+                    printer.printLn("ObjID[" + "] = objid;")
                     continue
                 }
             }
@@ -227,7 +252,6 @@ namespace typescriptc {
             return
         }
         if (ts.isVariableStatement(statement)) {
-            console.log("VariableStatement: ")
             visitVariableStatement(statement)
             return
         }

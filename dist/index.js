@@ -143,6 +143,10 @@ var typescriptc;
             process.exit(1);
         }
     };
+    // Camel to snake
+    var camelToSnake = function (s, big) {
+        if (big === void 0) { big = false; }
+    };
     // Expression
     var visitExpression = function (expression) {
         if (ts.isCallExpression(expression)) {
@@ -201,7 +205,7 @@ var typescriptc;
                     var type = checker.getDeclaredTypeOfSymbol(sym);
                     // console.log(checker.typeToString(type))
                     // console.log(type.isClass())
-                    var onlyTaskAllowedMessage = "classes that extends only Task are allowd";
+                    var onlyTaskAllowedMessage = "classes that extends only Task are allowed";
                     var baseTypes = type.getBaseTypes();
                     if (!baseTypes || baseTypes.length != 1) {
                         emitDiagnostic(d, onlyTaskAllowedMessage);
@@ -211,7 +215,32 @@ var typescriptc;
                         emitDiagnostic(d, onlyTaskAllowedMessage);
                         process.exit(1);
                     }
-                    console.log("class expr!");
+                    if (!expr.arguments) {
+                        printer.printLn("t_ctsk.stksz = 1024;");
+                        printer.printLn("t_ctsk.itskpri = 1;");
+                    }
+                    for (var key in expr.arguments) {
+                        switch (key) {
+                            case "priority":
+                                printer.print("t_ctsk.itskpri = ");
+                                visitExpression(expr.arguments[key]);
+                                printer.printLn(";");
+                            case "stackSize":
+                                printer.print("t_ctsk.stksz = ");
+                                visitExpression(expr.arguments[key]);
+                                printer.printLn(";");
+                            default:
+                                emitDiagnostic(expr, "invalid argument");
+                                process.exit(1);
+                        }
+                    }
+                    printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + "\");");
+                    printer.printLn("t_ctsk.task = " + ";");
+                    printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
+                    printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + ".\\n\");");
+                    printer.printLn("return 1;");
+                    printer.unindent().printLn("}");
+                    printer.printLn("ObjID[" + "] = objid;");
                     continue;
                 }
             }
@@ -232,7 +261,6 @@ var typescriptc;
             return;
         }
         if (ts.isVariableStatement(statement)) {
-            console.log("VariableStatement: ");
             visitVariableStatement(statement);
             return;
         }
