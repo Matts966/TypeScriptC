@@ -19,7 +19,13 @@ EXPORT INT usermain( void ) {
 	ID objid;
 	t_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 	t_ctsk.stksz = 1024;
-
+	t_ctsk.itskpri = 1;
+	STRCPY( (char *)t_ctsk.dsname, "tsk_a");
+	if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {
+		tm_putstring(" *** Failed in the creation of tsk_a.\n");
+		return 1;
+	}
+	ObjID[TSK_A] = objid;
 	t_ctsk.task = tsk_a;
 	while(1) {
 		tk_sta_tsk( ObjID[TSK_A], 0 );
