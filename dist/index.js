@@ -210,6 +210,12 @@ var typescriptc;
     };
     // Expression
     var visitExpression = function (expression) {
+        if (ts.isBinaryExpression(expression)) {
+            visitExpression(expression.left);
+            printer.printWithoutSpace(" " + expression.operatorToken.getText() + " ");
+            visitExpression(expression.right);
+            return;
+        }
         if (ts.isNumericLiteral(expression)) {
             printer.printWithoutSpace(expression.text);
             return;
@@ -265,6 +271,10 @@ var typescriptc;
                                 }
                                 printer.printWithoutSpace(" );");
                             }
+                            else if (expression.expression.name.getText() == "wakeUp") {
+                                var typeName = checker.typeToString(type);
+                                printer.printWithoutSpace("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )");
+                            }
                             else {
                                 emitDiagnostic(expression, "don't know how to handle " + expression.expression.name.getText());
                                 process.exit(1);
@@ -293,6 +303,10 @@ var typescriptc;
         }
         if (expression.getText() == "true") {
             printer.printWithoutSpace("1");
+            return;
+        }
+        if (expression.getText() == "tkernel.result.ok") {
+            printer.printWithoutSpace("E_OK");
             return;
         }
         printer.printWithoutSpace(expression.getText());
@@ -504,8 +518,11 @@ var typescriptc;
         if (ts.isIfStatement(statement)) {
             printer.print("if ( ");
             visitExpression(statement.expression);
-            printer.printWithoutSpace(" ) ");
-            if (!ts.isBlock(statement.thenStatement)) {
+            printer.printWithoutSpace(" )");
+            if (ts.isBlock(statement.thenStatement)) {
+                printer.printWithoutSpace(" ");
+            }
+            else {
                 printer.printWithoutSpace("\n");
                 printer.indent();
             }

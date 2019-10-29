@@ -5,7 +5,7 @@ const taskA = new class TaskA extends tkernel.Task {
         for (let i = 0; i < 3; i++) {
             console.log("*** tk_wup_tsk to task_b.")
             if (taskB.wakeUp() != tkernel.result.ok)
-                console.log(" *** Failed in tk_wup_task to task_b");
+                console.log(" *** Failed in tk_wup_tsk to task_b");
         }
     }
 }()
