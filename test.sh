@@ -1,4 +1,6 @@
 #!/bin/bash
+EXIT_CODE=0
+
 test() {
   filename="${1%.*}"
   if [[ ! -f $filename.c ]]; then
@@ -13,6 +15,7 @@ test() {
   $cmd -u $compiled $answer | tee $diff
   if [[ -s $diff ]]; then
     echo $filename: test failed 💀
+    EXIT_CODE=1
   else
     echo $filename: test succeeded 😎
   fi
@@ -25,3 +28,5 @@ fi
 for t in $(ls ./tests/*.ts); do
   test $t
 done
+
+exit $EXIT_CODE
