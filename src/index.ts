@@ -97,7 +97,49 @@ namespace typescriptc {
             return this
         }
     }
-    let printer = new StdOutPrinter()
+    class BufferedPrinter implements Printer {
+        private options : PrinterOptions = {
+            indentLevel: 1,
+            indentType: IndentType.tab,
+            withNewLine: false,
+        };
+        private buffer = ""
+        print(s : string, p = this.options) {
+            if (p.indentLevel && p.indentLevel > 0) {
+                const t = p.indentType || IndentType.tab
+                s = t.repeat(p.indentLevel) + s
+            }
+            if (p.withNewLine) {
+                this.buffer += s + '\n'
+            } else {
+                this.buffer += s
+            }
+            return this
+        }
+        printLn(s : string, p = this.options) {
+            const opt = { ...this.options }
+            this.options = p
+            this.options.withNewLine = true
+            this.print(s, this.options)
+            this.options = opt
+            return this
+        }
+        printWithoutSpace(s : string) {
+            this.buffer += s
+        }
+        outputBuffer() {
+            process.stdout.write(this.buffer)
+        }
+        indent() {
+            ++this.options.indentLevel!
+            return this
+        }
+        unindent() {
+            --this.options.indentLevel!
+            return this
+        }
+    }
+    let printer = new BufferedPrinter()
 
     // Utility
     let isGlobal = (node : ts.Node) => {
@@ -209,7 +251,7 @@ namespace typescriptc {
 
             return
         }
-        process.stdout.write(expression.getText())
+        printer.printWithoutSpace(expression.getText())
     }
 
     // Statement
@@ -221,7 +263,7 @@ namespace typescriptc {
     }
     let visitExpressionStatement = (expressionStatement : ts.ExpressionStatement) => {
         visitExpression(expressionStatement.expression)
-        console.log()
+        printer.printWithoutSpace("\n")
     }
     let visitVariableStatement = (variableStatement : ts.VariableStatement) => {
         visitVariableDeclarationList(variableStatement.declarationList)
@@ -420,6 +462,10 @@ namespace typescriptc {
         process.exit(1)
     }
 
+    export const printTasks = () => {
+
+    }
+
     export const main = () => {
         const cnp = new c.Program()
         cnp.includes.push()
@@ -436,6 +482,8 @@ namespace typescriptc {
 #include <tm/tmonitor.h>
 #include <libstr.h>
 `)
+
+        printTasks()
 
         console.log(`EXPORT INT usermain( void ) {
 \tT_CTSK t_ctsk;
@@ -466,6 +514,8 @@ namespace typescriptc {
                 ts.forEachChild(sourceFile, visit)
             }
         }
+
+        printer.outputBuffer()
 
         console.log(`}`)
     }

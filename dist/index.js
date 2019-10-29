@@ -110,7 +110,55 @@ var typescriptc;
         };
         return StdOutPrinter;
     }());
-    var printer = new StdOutPrinter();
+    var BufferedPrinter = /** @class */ (function () {
+        function BufferedPrinter() {
+            this.options = {
+                indentLevel: 1,
+                indentType: IndentType.tab,
+                withNewLine: false
+            };
+            this.buffer = "";
+        }
+        BufferedPrinter.prototype.print = function (s, p) {
+            if (p === void 0) { p = this.options; }
+            if (p.indentLevel && p.indentLevel > 0) {
+                var t = p.indentType || IndentType.tab;
+                s = t.repeat(p.indentLevel) + s;
+            }
+            if (p.withNewLine) {
+                this.buffer += s + '\n';
+            }
+            else {
+                this.buffer += s;
+            }
+            return this;
+        };
+        BufferedPrinter.prototype.printLn = function (s, p) {
+            if (p === void 0) { p = this.options; }
+            var opt = __assign({}, this.options);
+            this.options = p;
+            this.options.withNewLine = true;
+            this.print(s, this.options);
+            this.options = opt;
+            return this;
+        };
+        BufferedPrinter.prototype.printWithoutSpace = function (s) {
+            this.buffer += s;
+        };
+        BufferedPrinter.prototype.outputBuffer = function () {
+            process.stdout.write(this.buffer);
+        };
+        BufferedPrinter.prototype.indent = function () {
+            ++this.options.indentLevel;
+            return this;
+        };
+        BufferedPrinter.prototype.unindent = function () {
+            --this.options.indentLevel;
+            return this;
+        };
+        return BufferedPrinter;
+    }());
+    var printer = new BufferedPrinter();
     // Utility
     var isGlobal = function (node) {
         if (ts.isSourceFile(node.parent))
@@ -223,7 +271,7 @@ var typescriptc;
             // printer.printLn(");")
             return;
         }
-        process.stdout.write(expression.getText());
+        printer.printWithoutSpace(expression.getText());
     };
     // Statement
     var isStatement = function (node) {
@@ -234,7 +282,7 @@ var typescriptc;
     };
     var visitExpressionStatement = function (expressionStatement) {
         visitExpression(expressionStatement.expression);
-        console.log();
+        printer.printWithoutSpace("\n");
     };
     var visitVariableStatement = function (variableStatement) {
         visitVariableDeclarationList(variableStatement.declarationList);
@@ -433,6 +481,8 @@ var typescriptc;
         emitDiagnostic(node, "visit: don't know how to handle " + ts.SyntaxKind[node.kind]);
         process.exit(1);
     };
+    typescriptc.printTasks = function () {
+    };
     typescriptc.main = function () {
         var cnp = new c_1.c.Program();
         cnp.includes.push();
@@ -444,6 +494,7 @@ var typescriptc;
             process.exit(1);
         }
         console.log("#include <tk/tkernel.h>\n#include <tm/tmonitor.h>\n#include <libstr.h>\n");
+        typescriptc.printTasks();
         console.log("EXPORT INT usermain( void ) {\n\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
         // Main loop
         for (var _i = 0, _a = program.getSourceFiles(); _i < _a.length; _i++) {
@@ -466,6 +517,7 @@ var typescriptc;
                 ts.forEachChild(sourceFile, visit);
             }
         }
+        printer.outputBuffer();
         console.log("}");
     };
 })(typescriptc || (typescriptc = {}));
