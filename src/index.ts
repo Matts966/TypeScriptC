@@ -486,11 +486,25 @@ namespace typescriptc {
             printer.print("if ( ")
             visitExpression(statement.expression)
             printer.printWithoutSpace(" ) ")
+            if (!ts.isBlock(statement.thenStatement)) {
+                printer.printWithoutSpace("\n")
+                printer.indent()
+            }
             visitStatement(statement.thenStatement)
+            if (!ts.isBlock(statement.thenStatement)) {
+                printer.unindent()
+            }
             // TODO: handle else if
             if (statement.elseStatement) {
                 printer.printWithoutSpace(" else ")
+                if (!ts.isBlock(statement.elseStatement)) {
+                    printer.printWithoutSpace("\n")
+                    printer.indent()
+                }
                 visitStatement(statement.elseStatement)
+                if (!ts.isBlock(statement.elseStatement)) {
+                    printer.unindent()
+                }
             }
             return
         }

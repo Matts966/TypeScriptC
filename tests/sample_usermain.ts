@@ -23,7 +23,7 @@ const taskB = new class TaskB extends tkernel.Task {
 }(2)
 console.log("*** task_b created.")
 
-if (taskB.wakeUp() != tkernel.result.ok) {
+if (taskB.start(0) != tkernel.result.ok) {
     console.log(" *** Failed in start of task_b.")
     process.exit(1)
 }
