@@ -217,9 +217,17 @@ var typescriptc;
         if (ts.isCallExpression(expression)) {
             switch (expression.expression.getText()) {
                 case "console.log":
+                    // TODO: safer handling
                     printer.print("tm_putstring(\"" + expression.arguments.map(function (e) {
                         if (ts.isLiteralExpression(e))
-                            return e.text;
+                            return e.text.split('').map(function (c) {
+                                var cc = c.charCodeAt(0);
+                                if (31 < cc && 127 > cc) {
+                                    return c;
+                                }
+                                emitDiagnostic(e, "control sequence " + cc + " is not allowed now");
+                                process.exit(1);
+                            }).join('');
                         else
                             process.exit(1);
                     }) + "\\n\");");
@@ -428,9 +436,9 @@ var typescriptc;
             return;
         }
         if (ts.isIfStatement(statement)) {
-            printer.print("if (");
+            printer.print("if ( ");
             visitExpression(statement.expression);
-            printer.printWithoutSpace(") ");
+            printer.printWithoutSpace(" ) ");
             visitStatement(statement.thenStatement);
             // TODO: handle else if
             if (statement.elseStatement) {
@@ -544,6 +552,9 @@ var typescriptc;
         return camelToSnake(typeName);
     };
     var printTasks = function () {
+        if (tasks.length == 0) {
+            return;
+        }
         var tmpPrinter = printer;
         printer = new StdOutPrinter;
         var taskNames = tasks.map(function (m) {
@@ -610,7 +621,10 @@ var typescriptc;
             }
         }
         printTasks();
-        console.log("EXPORT INT usermain( void ) {\n\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
+        console.log("EXPORT INT usermain( void ) {");
+        if (tasks.length != 0) {
+            console.log("\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
+        }
         printer.outputBuffer();
         console.log("}");
     };

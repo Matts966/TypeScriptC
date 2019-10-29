@@ -196,9 +196,17 @@ namespace typescriptc {
         if (ts.isCallExpression(expression)) {
             switch (expression.expression.getText()) {
                 case "console.log":
+                    // TODO: safer handling
                     printer.print("tm_putstring(\"" + expression.arguments.map((e) => {
                         if (ts.isLiteralExpression(e))
-                            return e.text
+                            return e.text.split('').map((c) => {
+                                const cc = c.charCodeAt(0)
+                                if (31 < cc && 127 > cc) {
+                                    return c
+                                }
+                                emitDiagnostic(e, "control sequence " + cc + " is not allowed now")
+                                process.exit(1)
+                            }).join('')
                         else process.exit(1)
                     }) + "\\n\");")
                     return
@@ -412,9 +420,9 @@ namespace typescriptc {
             return
         }
         if (ts.isIfStatement(statement)) {
-            printer.print("if (")
+            printer.print("if ( ")
             visitExpression(statement.expression)
-            printer.printWithoutSpace(") ")
+            printer.printWithoutSpace(" ) ")
             visitStatement(statement.thenStatement)
             // TODO: handle else if
             if (statement.elseStatement) {
@@ -530,6 +538,10 @@ namespace typescriptc {
     }
 
     const printTasks = () => {
+        if (tasks.length == 0) {
+            return
+        }
+
         const tmpPrinter = printer
         printer = new StdOutPrinter
         const taskNames = tasks.map((m) => {
@@ -609,11 +621,13 @@ namespace typescriptc {
 
         printTasks()
 
-        console.log(`EXPORT INT usermain( void ) {
-\tT_CTSK t_ctsk;
+        console.log(`EXPORT INT usermain( void ) {`)
+        if (tasks.length != 0) {
+            console.log(`\tT_CTSK t_ctsk;
 \tID objid;
 \tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 `);
+        }
 
         (printer as BufferedPrinter).outputBuffer()
 
