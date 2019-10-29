@@ -297,6 +297,35 @@ var typescriptc;
         }
         printer.printWithoutSpace(expression.getText());
     };
+    var handleClassMembers = function (members) {
+        for (var _i = 0, members_1 = members; _i < members_1.length; _i++) {
+            var member = members_1[_i];
+            var invalidOverrideMessage = "please override only task with protected keyword";
+            if (ts.isMethodDeclaration(member)) {
+                if (!member.modifiers) {
+                    emitDiagnostic(member, invalidOverrideMessage);
+                    process.exit(1);
+                }
+                for (var _a = 0, _b = member.modifiers; _a < _b.length; _a++) {
+                    var mod = _b[_a];
+                    if (mod.getText() == "protected") {
+                        continue;
+                    }
+                    emitDiagnostic(member, invalidOverrideMessage);
+                    process.exit(1);
+                }
+                // console.log(member.name.getText())
+                if (member.name.getText() == "task") {
+                    addTask(member);
+                    continue;
+                }
+                emitDiagnostic(member, invalidOverrideMessage);
+                process.exit(1);
+            }
+            emitDiagnostic(member, invalidOverrideMessage);
+            process.exit(1);
+        }
+    };
     // Statement
     var isStatement = function (node) {
         if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isForStatement || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
@@ -340,41 +369,15 @@ var typescriptc;
                         emitDiagnostic(d, onlyTaskAllowedMessage);
                         process.exit(1);
                     }
-                    for (var _b = 0, _c = expr.expression.members; _b < _c.length; _b++) {
-                        var member = _c[_b];
-                        var invalidOverrideMessage = "please override only task with protected keyword";
-                        if (ts.isMethodDeclaration(member)) {
-                            if (!member.modifiers) {
-                                emitDiagnostic(member, invalidOverrideMessage);
-                                process.exit(1);
-                            }
-                            for (var _d = 0, _e = member.modifiers; _d < _e.length; _d++) {
-                                var mod = _e[_d];
-                                if (mod.getText() == "protected") {
-                                    continue;
-                                }
-                                emitDiagnostic(member, invalidOverrideMessage);
-                                process.exit(1);
-                            }
-                            // console.log(member.name.getText())
-                            if (member.name.getText() == "task") {
-                                addTask(member);
-                                continue;
-                            }
-                            emitDiagnostic(member, invalidOverrideMessage);
-                            process.exit(1);
-                        }
-                        emitDiagnostic(member, invalidOverrideMessage);
-                        process.exit(1);
-                    }
+                    handleClassMembers(expr.expression.members);
                     if (!expr.arguments) {
                         printer.printLn("t_ctsk.stksz = 1024;");
                         printer.printLn("t_ctsk.itskpri = 1;");
                     }
                     else {
                         var argNum = 0;
-                        for (var _f = 0, _g = expr.arguments; _f < _g.length; _f++) {
-                            var arg = _g[_f];
+                        for (var _b = 0, _c = expr.arguments; _b < _c.length; _b++) {
+                            var arg = _c[_b];
                             if (argNum == 0) {
                                 printer.print("t_ctsk.itskpri = ");
                                 visitExpression(arg);
@@ -400,6 +403,69 @@ var typescriptc;
                         }
                     }
                     var taskIdent = expr.expression.name;
+                    if (!taskIdent) {
+                        emitDiagnostic(expr.expression, "invalid task");
+                        process.exit(1);
+                    }
+                    var taskName = camelToSnake(taskIdent.text);
+                    printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");");
+                    printer.printLn("t_ctsk.task = " + taskName + ";");
+                    printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
+                    printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
+                    printer.printLn("return 1;");
+                    printer.unindent().printLn("}");
+                    printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
+                    continue;
+                }
+                // TODO: merge handling with ClassExpression by makeing function
+                if (ts.isIdentifier(expr.expression)) {
+                    var sym = checker.getSymbolAtLocation(expr.expression);
+                    var type = checker.getDeclaredTypeOfSymbol(sym);
+                    // console.log(checker.typeToString(type))
+                    // console.log(type.isClass())
+                    var onlyTaskAllowedMessage = "classes that extends only Task are allowed";
+                    var baseTypes = type.getBaseTypes();
+                    if (!baseTypes || baseTypes.length != 1) {
+                        emitDiagnostic(d, onlyTaskAllowedMessage);
+                        process.exit(1);
+                    }
+                    if (checker.typeToString(baseTypes[0]) != "Task") {
+                        emitDiagnostic(d, onlyTaskAllowedMessage);
+                        process.exit(1);
+                    }
+                    if (!expr.arguments) {
+                        printer.printLn("t_ctsk.stksz = 1024;");
+                        printer.printLn("t_ctsk.itskpri = 1;");
+                    }
+                    else {
+                        var argNum = 0;
+                        for (var _d = 0, _e = expr.arguments; _d < _e.length; _d++) {
+                            var arg = _e[_d];
+                            if (argNum == 0) {
+                                printer.print("t_ctsk.itskpri = ");
+                                visitExpression(arg);
+                                printer.printLn(";");
+                            }
+                            else if (argNum == 1) {
+                                printer.print("t_ctsk.stksz = ");
+                                visitExpression(arg);
+                                printer.printLn(";");
+                            }
+                            else {
+                                emitDiagnostic(expr.expression, "invalid arguments");
+                                process.exit(1);
+                            }
+                            ++argNum;
+                        }
+                        if (argNum == 0) {
+                            printer.printLn("t_ctsk.stksz = 1024;");
+                            printer.printLn("t_ctsk.itskpri = 1;");
+                        }
+                        if (argNum == 1) {
+                            printer.printLn("t_ctsk.stksz = 1024;");
+                        }
+                    }
+                    var taskIdent = expr.expression;
                     if (!taskIdent) {
                         emitDiagnostic(expr.expression, "invalid task");
                         process.exit(1);
@@ -514,7 +580,7 @@ var typescriptc;
         if (!m || !m.name || m.name.getText() != "task") {
             notAllowedDiagnostic();
         }
-        console.log(classDeclaration.members[0].getText());
+        handleClassMembers(classDeclaration.members);
     };
     // General visit function
     var visit = function (node) {
@@ -523,6 +589,9 @@ var typescriptc;
         }
         if (handleImport(node))
             return;
+        if (ts.isClassDeclaration(node)) {
+            return visitClassDeclaration(node);
+        }
         if (isStatement(node)) {
             return visitStatement(node);
         }
@@ -530,9 +599,6 @@ var typescriptc;
             console.log("FunctionDeclaration: " + node.body);
             console.log();
             return;
-        }
-        if (ts.isClassDeclaration(node)) {
-            return visitClassDeclaration(node);
         }
         //TODO: allow only constant task declaration
         emitDiagnostic(node, "visit: don't know how to handle " + ts.SyntaxKind[node.kind]);

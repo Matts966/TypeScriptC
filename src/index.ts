@@ -279,6 +279,36 @@ namespace typescriptc {
         printer.printWithoutSpace(expression.getText())
     }
 
+    const handleClassMembers = (members : ts.NodeArray<ts.ClassElement>) => {
+        for (const member of members) {
+            const invalidOverrideMessage = "please override only task with protected keyword"
+            if (ts.isMethodDeclaration(member)) {
+                if (!member.modifiers) {
+                    emitDiagnostic(member, invalidOverrideMessage)
+                    process.exit(1)
+                }
+                for (const mod of member.modifiers!) {
+                    if (mod.getText() == "protected") {
+                        continue
+                    }
+                    emitDiagnostic(member, invalidOverrideMessage)
+                    process.exit(1)
+                }
+
+                // console.log(member.name.getText())
+
+                if (member.name.getText() == "task") {
+                    addTask(member as ts.MethodDeclaration)
+                    continue
+                }
+                emitDiagnostic(member, invalidOverrideMessage)
+                process.exit(1)
+            }
+            emitDiagnostic(member, invalidOverrideMessage)
+            process.exit(1)
+        }
+    }
+
     // Statement
     let isStatement = (node : ts.Node) : node is ts.Statement => {
         if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isForStatement || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
@@ -324,31 +354,64 @@ namespace typescriptc {
                         emitDiagnostic(d, onlyTaskAllowedMessage)
                         process.exit(1)
                     }
-                    for (const member of expr.expression.members) {
-                        const invalidOverrideMessage = "please override only task with protected keyword"
-                        if (ts.isMethodDeclaration(member)) {
-                            if (!member.modifiers) {
-                                emitDiagnostic(member, invalidOverrideMessage)
+                    handleClassMembers(expr.expression.members)
+                    if (!expr.arguments) {
+                        printer.printLn("t_ctsk.stksz = 1024;")
+                        printer.printLn("t_ctsk.itskpri = 1;")
+                    } else {
+                        let argNum = 0
+                        for (const arg of expr.arguments) {
+                            if (argNum == 0) {
+                                printer.print("t_ctsk.itskpri = ")
+                                visitExpression(arg)
+                                printer.printLn(";")
+                            } else if (argNum == 1) {
+                                printer.print("t_ctsk.stksz = ")
+                                visitExpression(arg)
+                                printer.printLn(";")
+                            } else {
+                                emitDiagnostic(expr.expression, "invalid arguments")
                                 process.exit(1)
                             }
-                            for (const mod of member.modifiers!) {
-                                if (mod.getText() == "protected") {
-                                    continue
-                                }
-                                emitDiagnostic(member, invalidOverrideMessage)
-                                process.exit(1)
-                            }
-
-                            // console.log(member.name.getText())
-
-                            if (member.name.getText() == "task") {
-                                addTask(member as ts.MethodDeclaration)
-                                continue
-                            }
-                            emitDiagnostic(member, invalidOverrideMessage)
-                            process.exit(1)
+                            ++argNum
                         }
-                        emitDiagnostic(member, invalidOverrideMessage)
+                        if (argNum == 0) {
+                            printer.printLn("t_ctsk.stksz = 1024;")
+                            printer.printLn("t_ctsk.itskpri = 1;")
+                        }
+                        if (argNum == 1) {
+                            printer.printLn("t_ctsk.stksz = 1024;")
+                        }
+                    }
+                    const taskIdent = expr.expression.name
+                    if (!taskIdent) {
+                        emitDiagnostic(expr.expression, "invalid task")
+                        process.exit(1)
+                    }
+                    const taskName = camelToSnake(taskIdent!.text)
+                    printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");")
+                    printer.printLn("t_ctsk.task = " + taskName + ";")
+                    printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {")
+                    printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");")
+                    printer.printLn("return 1;")
+                    printer.unindent().printLn("}")
+                    printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
+                    continue
+                }
+                // TODO: merge handling with ClassExpression by makeing function
+                if (ts.isIdentifier(expr.expression)) {
+                    const sym = checker.getSymbolAtLocation(expr.expression)
+                    const type = checker.getDeclaredTypeOfSymbol(sym!)
+                    // console.log(checker.typeToString(type))
+                    // console.log(type.isClass())
+                    const onlyTaskAllowedMessage = "classes that extends only Task are allowed"
+                    const baseTypes = type.getBaseTypes()
+                    if (!baseTypes || baseTypes.length != 1) {
+                        emitDiagnostic(d, onlyTaskAllowedMessage)
+                        process.exit(1)
+                    }
+                    if (checker.typeToString(baseTypes![0]) != "Task") {
+                        emitDiagnostic(d, onlyTaskAllowedMessage)
                         process.exit(1)
                     }
                     if (!expr.arguments) {
@@ -379,7 +442,7 @@ namespace typescriptc {
                             printer.printLn("t_ctsk.stksz = 1024;")
                         }
                     }
-                    const taskIdent = expr.expression.name
+                    const taskIdent = expr.expression
                     if (!taskIdent) {
                         emitDiagnostic(expr.expression, "invalid task")
                         process.exit(1)
@@ -497,7 +560,7 @@ namespace typescriptc {
         if (!m || !m.name || m.name.getText() != "task") {
             notAllowedDiagnostic()
         }
-        console.log(classDeclaration.members[0].getText())
+        handleClassMembers(classDeclaration.members)
     }
 
     // General visit function
@@ -506,6 +569,9 @@ namespace typescriptc {
             return
         }
         if (handleImport(node)) return
+        if (ts.isClassDeclaration(node)) {
+            return visitClassDeclaration(node)
+        }
         if (isStatement(node)) {
             return visitStatement(node)
         }
@@ -513,9 +579,6 @@ namespace typescriptc {
             console.log("FunctionDeclaration: " + node.body)
             console.log()
             return
-        }
-        if (ts.isClassDeclaration(node)) {
-            return visitClassDeclaration(node)
         }
         //TODO: allow only constant task declaration
         emitDiagnostic(node, "visit: don't know how to handle " + ts.SyntaxKind[node.kind])
