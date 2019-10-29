@@ -115,6 +115,16 @@ var typescriptc;
             --this.options.indentLevel;
             return this;
         };
+        StdOutPrinter.prototype.setOptions = function (p) {
+            this.options = p;
+            return this;
+        };
+        StdOutPrinter.prototype.removeSpaces = function () {
+            var tmpOptions = __assign({}, this.options);
+            this.options.indentLevel = 0;
+            this.options.withNewLine = false;
+            return tmpOptions;
+        };
         return StdOutPrinter;
     }());
     var BufferedPrinter = /** @class */ (function () {
@@ -162,6 +172,16 @@ var typescriptc;
         BufferedPrinter.prototype.unindent = function () {
             --this.options.indentLevel;
             return this;
+        };
+        BufferedPrinter.prototype.setOptions = function (p) {
+            this.options = p;
+            return this;
+        };
+        BufferedPrinter.prototype.removeSpaces = function () {
+            var tmpOptions = __assign({}, this.options);
+            this.options.indentLevel = 0;
+            this.options.withNewLine = false;
+            return tmpOptions;
         };
         return BufferedPrinter;
     }());
@@ -211,9 +231,11 @@ var typescriptc;
     // Expression
     var visitExpression = function (expression) {
         if (ts.isBinaryExpression(expression)) {
+            var tmpOptions = printer.removeSpaces();
             visitExpression(expression.left);
             printer.printWithoutSpace(" " + expression.operatorToken.getText() + " ");
             visitExpression(expression.right);
+            printer.setOptions(tmpOptions);
             return;
         }
         if (ts.isNumericLiteral(expression)) {
@@ -236,14 +258,14 @@ var typescriptc;
                             }).join('');
                         else
                             process.exit(1);
-                    }) + "\\n\");");
+                    }) + "\\n\")");
                     return;
                 case "process.exit":
-                    printer.print("return " + expression.arguments[0].getText() + ";");
+                    printer.print("return " + expression.arguments[0].getText());
                     return;
                 case "tkernel.ask":
                     printer.printLn("tm_putstring((UB*)" + expression.arguments[0].getText() + ");");
-                    printer.print("tm_getchar(-1);");
+                    printer.print("tm_getchar(-1)");
                     return;
                 // TODO: handle arguements
                 default:
@@ -269,11 +291,11 @@ var typescriptc;
                                     visitExpression(arg);
                                     ++argNum;
                                 }
-                                printer.printWithoutSpace(" );");
+                                printer.printWithoutSpace(" )");
                             }
                             else if (expression.expression.name.getText() == "wakeUp") {
                                 var typeName = checker.typeToString(type);
-                                printer.printWithoutSpace("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )");
+                                printer.print("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )");
                             }
                             else {
                                 emitDiagnostic(expression, "don't know how to handle " + expression.expression.name.getText());
@@ -286,11 +308,13 @@ var typescriptc;
                         }
                         return;
                     }
+                    // TODO: check this is needed
+                    // Maybe for the nodes without pos because of syntesis such as tk_ext_tsk.
                     if (ts.isIdentifier(expression.expression)) {
-                        printer.print(expression.expression.text + "();");
+                        printer.print(expression.expression.text + "()");
                         return;
                     }
-                    printer.print(expression.expression.getText() + "();");
+                    printer.print(expression.expression.getText() + "()");
             }
             // TODO: Add type map
             // for (const arg of expression.arguments) {
@@ -349,7 +373,7 @@ var typescriptc;
     };
     var visitExpressionStatement = function (expressionStatement) {
         visitExpression(expressionStatement.expression);
-        printer.printWithoutSpace("\n");
+        printer.printWithoutSpace(";\n");
     };
     var visitVariableStatement = function (variableStatement) {
         visitVariableDeclarationList(variableStatement.declarationList);

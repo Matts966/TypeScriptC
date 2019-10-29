@@ -56,12 +56,16 @@ namespace typescriptc {
         indentType?: IndentType,
         withNewLine?: boolean,
     }
+
+    // TODO: abstract printers by parent abstract class
     interface Printer {
         print : (s : string, p?: PrinterOptions) => Printer
         printLn : (s : string, p?: PrinterOptions) => Printer
         printWithoutSpace : (s : string) => void
         indent : () => Printer
         unindent : () => Printer
+        setOptions : (p : PrinterOptions) => Printer
+        removeSpaces : () => PrinterOptions
     }
     class StdOutPrinter implements Printer {
         private options : PrinterOptions = {
@@ -99,6 +103,16 @@ namespace typescriptc {
         unindent() {
             --this.options.indentLevel!
             return this
+        }
+        setOptions(p : PrinterOptions) {
+            this.options = p
+            return this
+        }
+        removeSpaces() {
+            const tmpOptions = { ...this.options }
+            this.options.indentLevel = 0
+            this.options.withNewLine = false
+            return tmpOptions
         }
     }
     class BufferedPrinter implements Printer {
@@ -141,6 +155,16 @@ namespace typescriptc {
         unindent() {
             --this.options.indentLevel!
             return this
+        }
+        setOptions(p : PrinterOptions) {
+            this.options = p
+            return this
+        }
+        removeSpaces() {
+            const tmpOptions = { ...this.options }
+            this.options.indentLevel = 0
+            this.options.withNewLine = false
+            return tmpOptions
         }
     }
     let printer : Printer = new BufferedPrinter()
@@ -190,9 +214,15 @@ namespace typescriptc {
     // Expression
     let visitExpression = (expression : ts.Expression) => {
         if (ts.isBinaryExpression(expression)) {
+
+            const tmpOptions = printer.removeSpaces()
+
             visitExpression(expression.left)
             printer.printWithoutSpace(" " + expression.operatorToken.getText() + " ")
             visitExpression(expression.right)
+
+            printer.setOptions(tmpOptions)
+
             return
         }
         if (ts.isNumericLiteral(expression)) {
@@ -214,14 +244,14 @@ namespace typescriptc {
                                 process.exit(1)
                             }).join('')
                         else process.exit(1)
-                    }) + "\\n\");")
+                    }) + "\\n\")")
                     return
                 case "process.exit":
-                    printer.print("return " + expression.arguments[0].getText() + ";")
+                    printer.print("return " + expression.arguments[0].getText())
                     return
                 case "tkernel.ask":
                     printer.printLn("tm_putstring((UB*)" + expression.arguments[0].getText() + ");")
-                    printer.print("tm_getchar(-1);")
+                    printer.print("tm_getchar(-1)")
                     return
                 // TODO: handle arguements
                 default:
@@ -248,10 +278,10 @@ namespace typescriptc {
                                     visitExpression(arg)
                                     ++argNum
                                 }
-                                printer.printWithoutSpace(" );")
+                                printer.printWithoutSpace(" )")
                             } else if (expression.expression.name.getText() == "wakeUp") {
                                 const typeName = checker.typeToString(type)
-                                printer.printWithoutSpace("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )")
+                                printer.print("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )")
                             } else {
                                 emitDiagnostic(expression, "don't know how to handle " + expression.expression.name.getText())
                                 process.exit(1)
@@ -263,12 +293,14 @@ namespace typescriptc {
                         return
                     }
 
+                    // TODO: check this is needed
+                    // Maybe for the nodes without pos because of syntesis such as tk_ext_tsk.
                     if (ts.isIdentifier(expression.expression)) {
-                        printer.print(expression.expression.text + "();")
+                        printer.print(expression.expression.text + "()")
                         return
                     }
 
-                    printer.print(expression.expression.getText() + "();")
+                    printer.print(expression.expression.getText() + "()")
             }
 
             // TODO: Add type map
@@ -331,7 +363,7 @@ namespace typescriptc {
     }
     let visitExpressionStatement = (expressionStatement : ts.ExpressionStatement) => {
         visitExpression(expressionStatement.expression)
-        printer.printWithoutSpace("\n")
+        printer.printWithoutSpace(";\n")
     }
     let visitVariableStatement = (variableStatement : ts.VariableStatement) => {
         visitVariableDeclarationList(variableStatement.declarationList)
