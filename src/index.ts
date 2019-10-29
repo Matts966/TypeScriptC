@@ -165,6 +165,33 @@ namespace typescriptc {
                     return
                 // TODO: handle arguements
                 default:
+                    if (ts.isPropertyAccessExpression(expression.expression)) {
+                        // TODO: add util for type checker
+                        const type = checker.getTypeAtLocation(expression.expression.expression)
+                        if (checker.typeToString(type.getBaseTypes()![0]) == "Task") {
+                            if (expression.expression.name.getText() == "start") {
+                                const typeName = checker.typeToString(type)
+                                printer.print("tk_sta_tsk( ObjID[" + camelToSnake(typeName, true) + "], ")
+                                let argNum = 0
+                                for (const arg of expression.arguments) {
+                                    if (argNum != 0) {
+                                        emitDiagnostic(expression, "invalid argument in task.start")
+                                        process.exit(1)
+                                    }
+                                    visitExpression(arg)
+                                    ++argNum
+                                }
+                                printer.printWithoutSpace(" );")
+                            } else {
+                                emitDiagnostic(expression, "don't know how to handle " + expression.expression.name.getText())
+                                process.exit(1)
+                            }
+                        } else {
+                            emitDiagnostic(expression, "don't know how to handle " + checker.typeToString(type))
+                            process.exit(1)
+                        }
+                        return
+                    }
                     printer.print(expression.expression.getText() + "();")
             }
 
@@ -436,8 +463,7 @@ namespace typescriptc {
             }
         }
 
-        console.log(`}
-`)
+        console.log(`}`)
     }
 }
 

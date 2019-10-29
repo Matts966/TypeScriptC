@@ -155,6 +155,10 @@ var typescriptc;
     };
     // Expression
     var visitExpression = function (expression) {
+        if (expression.getText() == "true") {
+            printer.printWithoutSpace("1");
+            return;
+        }
         if (ts.isNumericLiteral(expression)) {
             printer.printWithoutSpace(expression.text);
             return;
@@ -174,6 +178,36 @@ var typescriptc;
                     return;
                 // TODO: handle arguements
                 default:
+                    if (ts.isPropertyAccessExpression(expression.expression)) {
+                        // TODO: add util for type checker
+                        var type = checker.getTypeAtLocation(expression.expression.expression);
+                        if (checker.typeToString(type.getBaseTypes()[0]) == "Task") {
+                            if (expression.expression.name.getText() == "start") {
+                                var typeName = checker.typeToString(type);
+                                printer.print("tk_sta_tsk( ObjID[" + camelToSnake(typeName, true) + "], ");
+                                var argNum = 0;
+                                for (var _i = 0, _a = expression.arguments; _i < _a.length; _i++) {
+                                    var arg = _a[_i];
+                                    if (argNum != 0) {
+                                        emitDiagnostic(expression, "invalid argument in task.start");
+                                        process.exit(1);
+                                    }
+                                    visitExpression(arg);
+                                    ++argNum;
+                                }
+                                printer.printWithoutSpace(" );");
+                            }
+                            else {
+                                emitDiagnostic(expression, "don't know how to handle " + expression.expression.name.getText());
+                                process.exit(1);
+                            }
+                        }
+                        else {
+                            emitDiagnostic(expression, "don't know how to handle " + checker.typeToString(type));
+                            process.exit(1);
+                        }
+                        return;
+                    }
                     printer.print(expression.expression.getText() + "();");
             }
             // TODO: Add type map
@@ -306,7 +340,7 @@ var typescriptc;
             return;
         }
         if (ts.isWhileStatement(statement)) {
-            printer.print("while (");
+            printer.print("while(");
             visitExpression(statement.expression);
             printer.printWithoutSpace(") ");
             visitStatement(statement.statement);
@@ -428,7 +462,7 @@ var typescriptc;
                 ts.forEachChild(sourceFile, visit);
             }
         }
-        console.log("}\n");
+        console.log("}");
     };
 })(typescriptc || (typescriptc = {}));
 typescriptc.main();

@@ -10,5 +10,5 @@ class TaskA extends tkernel.Task {
 
 const taskA = new TaskA()
 while (true) {
-    taskA.start(1)
+    taskA.start(0)
 }
