@@ -1,6 +1,6 @@
 # TypeScriptC
 
-![github-action](https://github.com/Matts966/TypeScriptC/workflows/test/badge.svg)
+[![github-action](https://github.com/Matts966/TypeScriptC/workflows/test/badge.svg)](https://github.com/Matts966/TypeScriptC/actions)
 
 This project transpiles TypeScript into C in order to reduce the binary size and use real-time os API. 
 This repository is still under development, and the result of transpilation is emitted to stdout. 
