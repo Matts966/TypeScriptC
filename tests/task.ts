@@ -6,7 +6,7 @@ const taskA = new class TaskA extends tkernel.Task {
             console.log("output!");
         }
     }
-}
+}()
 
 while (true) {
     taskA.start(1)

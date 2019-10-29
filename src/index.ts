@@ -1,7 +1,6 @@
 
 import * as ts from 'typescript'
 import { c } from './c'
-import { stat } from 'fs'
 
 namespace typescriptc {
     // Initial file settings
@@ -132,8 +131,22 @@ namespace typescriptc {
         }
     }
 
+    // Camel to snake
+    const camelToSnake = (s : string, big : boolean = false) => {
+        s = s.slice(0, 1).toLowerCase() + s.slice(1)
+        const snake = s.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        if (big) {
+            return snake.toUpperCase()
+        }
+        return snake
+    }
+
     // Expression
     let visitExpression = (expression : ts.Expression) => {
+        if (ts.isNumericLiteral(expression)) {
+            printer.printWithoutSpace(expression.text)
+            return
+        }
         if (ts.isCallExpression(expression)) {
             switch (expression.expression.getText()) {
                 case "console.log":
@@ -205,29 +218,44 @@ namespace typescriptc {
                     if (!expr.arguments) {
                         printer.printLn("t_ctsk.stksz = 1024;")
                         printer.printLn("t_ctsk.itskpri = 1;")
-                    }
-                    for (const key in expr.arguments!) {
-                        switch (key) {
-                            case "priority":
+                    } else {
+                        let argNum = 0
+                        for (const arg of expr.arguments) {
+                            if (argNum == 0) {
                                 printer.print("t_ctsk.itskpri = ")
-                                visitExpression(expr.arguments[key])
+                                visitExpression(arg)
                                 printer.printLn(";")
-                            case "stackSize":
+                            } else if (argNum == 1) {
                                 printer.print("t_ctsk.stksz = ")
-                                visitExpression(expr.arguments[key])
+                                visitExpression(arg)
                                 printer.printLn(";")
-                            default:
-                                emitDiagnostic(expr, "invalid argument")
+                            } else {
+                                emitDiagnostic(expr.expression, "invalid arguments")
                                 process.exit(1)
+                            }
+                            ++argNum
+                        }
+                        if (argNum == 0) {
+                            printer.printLn("t_ctsk.stksz = 1024;")
+                            printer.printLn("t_ctsk.itskpri = 1;")
+                        }
+                        if (argNum == 1) {
+                            printer.printLn("t_ctsk.stksz = 1024;")
                         }
                     }
-                    printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + "\");")
-                    printer.printLn("t_ctsk.task = " + ";")
+                    const taskIdent = expr.expression.name
+                    if (!taskIdent) {
+                        emitDiagnostic(expr.expression, "invalid task")
+                        process.exit(1)
+                    }
+                    const taskName = camelToSnake(taskIdent!.text)
+                    printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");")
+                    printer.printLn("t_ctsk.task = " + taskName + ";")
                     printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {")
-                    printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + ".\\n\");")
+                    printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");")
                     printer.printLn("return 1;")
                     printer.unindent().printLn("}")
-                    printer.printLn("ObjID[" + "] = objid;")
+                    printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
                     continue
                 }
             }
