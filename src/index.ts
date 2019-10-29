@@ -57,11 +57,15 @@ namespace typescriptc {
         withNewLine?: boolean,
     }
     interface Printer {
-        print : (s : string, p?: PrinterOptions) => void
+        print : (s : string, p?: PrinterOptions) => Printer
+        printLn : (s : string, p?: PrinterOptions) => Printer
+        printWithoutSpace : (s : string) => void
+        indent : () => Printer
+        unindent : () => Printer
     }
     class StdOutPrinter implements Printer {
         private options : PrinterOptions = {
-            indentLevel: 1,
+            indentLevel: 0,
             indentType: IndentType.tab,
             withNewLine: false,
         };
@@ -139,7 +143,7 @@ namespace typescriptc {
             return this
         }
     }
-    let printer = new BufferedPrinter()
+    let printer : Printer = new BufferedPrinter()
 
     // Utility
     let isGlobal = (node : ts.Node) => {
@@ -185,10 +189,6 @@ namespace typescriptc {
 
     // Expression
     let visitExpression = (expression : ts.Expression) => {
-        if (expression.getText() == "true") {
-            printer.printWithoutSpace("1")
-            return
-        }
         if (ts.isNumericLiteral(expression)) {
             printer.printWithoutSpace(expression.text)
             return
@@ -214,6 +214,13 @@ namespace typescriptc {
                     if (ts.isPropertyAccessExpression(expression.expression)) {
                         // TODO: add util for type checker
                         const type = checker.getTypeAtLocation(expression.expression.expression)
+
+                        // TODO: handle this
+                        if (!type.getBaseTypes()) {
+                            console.log(checker.typeToString(type))
+                            return
+                        }
+
                         if (checker.typeToString(type.getBaseTypes()![0]) == "Task") {
                             if (expression.expression.name.getText() == "start") {
                                 const typeName = checker.typeToString(type)
@@ -238,6 +245,12 @@ namespace typescriptc {
                         }
                         return
                     }
+
+                    if (ts.isIdentifier(expression.expression)) {
+                        printer.print(expression.expression.text + "();")
+                        return
+                    }
+
                     printer.print(expression.expression.getText() + "();")
             }
 
@@ -249,6 +262,10 @@ namespace typescriptc {
             // }
             // printer.printLn(");")
 
+            return
+        }
+        if (expression.getText() == "true") {
+            printer.printWithoutSpace("1")
             return
         }
         printer.printWithoutSpace(expression.getText())
@@ -276,6 +293,13 @@ namespace typescriptc {
             }
 
             const expr = d.initializer!
+
+            if (ts.isNumericLiteral(expr)) {
+                // TODO: check if it is int
+                printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText())
+                return
+            }
+
             if (ts.isNewExpression(expr)) {
                 if (ts.isClassExpression(expr.expression)) {
                     const sym = checker.getSymbolAtLocation(expr.expression.name!)
@@ -290,6 +314,33 @@ namespace typescriptc {
                     }
                     if (checker.typeToString(baseTypes![0]) != "Task") {
                         emitDiagnostic(d, onlyTaskAllowedMessage)
+                        process.exit(1)
+                    }
+                    for (const member of expr.expression.members) {
+                        const invalidOverrideMessage = "please override only task with protected keyword"
+                        if (ts.isMethodDeclaration(member)) {
+                            if (!member.modifiers) {
+                                emitDiagnostic(member, invalidOverrideMessage)
+                                process.exit(1)
+                            }
+                            for (const mod of member.modifiers!) {
+                                if (mod.getText() == "protected") {
+                                    continue
+                                }
+                                emitDiagnostic(member, invalidOverrideMessage)
+                                process.exit(1)
+                            }
+
+                            // console.log(member.name.getText())
+
+                            if (member.name.getText() == "task") {
+                                addTask(member as ts.MethodDeclaration)
+                                continue
+                            }
+                            emitDiagnostic(member, invalidOverrideMessage)
+                            process.exit(1)
+                        }
+                        emitDiagnostic(member, invalidOverrideMessage)
                         process.exit(1)
                     }
                     if (!expr.arguments) {
@@ -380,7 +431,7 @@ namespace typescriptc {
             return
         }
         if (ts.isForStatement(statement)) {
-            printer.print("for (")
+            printer.print("for ( ")
             const ini = statement.initializer
             if (ini) {
                 if (ts.isVariableDeclarationList(ini)) {
@@ -389,18 +440,19 @@ namespace typescriptc {
                     visitExpression(ini)
                 }
             }
-            printer.print("; ")
+            printer.printWithoutSpace("; ")
             const cond = statement.condition
             if (cond) {
                 visitExpression(cond)
             }
-            printer.print("; ")
+            printer.printWithoutSpace("; ")
             const incre = statement.incrementor
             if (incre) {
                 visitExpression(incre)
             }
-            printer.printWithoutSpace(") ")
+            printer.printWithoutSpace(" ) ")
             visitStatement(statement.statement)
+            return
         }
         if (ts.isBlock(statement)) {
             printer.printLn("{", { indentLevel: 0 })
@@ -462,8 +514,56 @@ namespace typescriptc {
         process.exit(1)
     }
 
-    export const printTasks = () => {
+    let tasks : ts.MethodDeclaration[] = []
+    const addTask = (method : ts.MethodDeclaration) => {
+        tasks.push(method)
+    }
 
+    const getTypeString = (node : ts.Node) => {
+        const type = checker.getTypeAtLocation(node)
+        const typeName = checker.typeToString(type)
+        const splited = typeName.split(" ")
+        if (splited.length != 1) {
+            return camelToSnake(splited[1])
+        }
+        return camelToSnake(typeName)
+    }
+
+    const printTasks = () => {
+        const tmpPrinter = printer
+        printer = new StdOutPrinter
+        const taskNames = tasks.map((m) => {
+            return getTypeString(m.parent)
+        })
+
+        printer.printLn("typedef enum { " + taskNames.map((name) => name.toUpperCase() + ', ') + "OBJ_KIND_NUM } OBJ_KIND;")
+        printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
+        printer.printLn("")
+        tasks.forEach((m) => {
+            const taskSig = "EXPORT void " + getTypeString(m.parent) + "(INT stacd, VP exinf)"
+            printer.printLn(taskSig + ';')
+            printer.print(taskSig + " ")
+            if (!m.body) {
+                emitDiagnostic(m, "no task body!")
+                process.exit(1)
+            }
+
+            // Add tk_ext_tsk to the end of task
+            // This code looks redundant becase the ts compiler api crashes when some conditions are not fulfilled
+            let ident = ts.createIdentifier("tk_ext_tsk")
+            ident.pos = m.body!.statements.end
+            ident.end = ident.pos + 11
+            let call = ts.createCall(ident, [], [])
+            ident.parent = call
+            let exprSt = ts.createExpressionStatement(call)
+            call.parent = exprSt
+            let nArr = ts.createNodeArray([...m.body!.statements, exprSt])
+            exprSt.parent = m.body!
+            m.body!.statements = nArr
+            visit(m.body!)
+        })
+        printer.printLn("")
+        printer = tmpPrinter
     }
 
     export const main = () => {
@@ -481,14 +581,6 @@ namespace typescriptc {
         console.log(`#include <tk/tkernel.h>
 #include <tm/tmonitor.h>
 #include <libstr.h>
-`)
-
-        printTasks()
-
-        console.log(`EXPORT INT usermain( void ) {
-\tT_CTSK t_ctsk;
-\tID objid;
-\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 `)
 
         // Main loop
@@ -515,7 +607,15 @@ namespace typescriptc {
             }
         }
 
-        printer.outputBuffer()
+        printTasks()
+
+        console.log(`EXPORT INT usermain( void ) {
+\tT_CTSK t_ctsk;
+\tID objid;
+\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;
+`);
+
+        (printer as BufferedPrinter).outputBuffer()
 
         console.log(`}`)
     }

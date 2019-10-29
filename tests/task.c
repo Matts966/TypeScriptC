@@ -7,9 +7,8 @@ EXPORT ID ObjID[OBJ_KIND_NUM];
 
 EXPORT void task_a(INT stacd, VP exinf);
 EXPORT void task_a(INT stacd, VP exinf) {
-	int i;
-	for ( i = 0; i < 3; i++ ) {
-		tm_putstring("output!");
+	for ( int i = 0; i < 3; i++ ) {
+		tm_putstring("output!\n");
 	}
 	tk_ext_tsk();
 }
