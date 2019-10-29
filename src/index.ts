@@ -364,7 +364,7 @@ namespace typescriptc {
                             if (argNum == 0) {
                                 printer.print("t_ctsk.itskpri = ")
                                 visitExpression(arg)
-                                printer.printLn(";")
+                                printer.printWithoutSpace(";\n")
                             } else if (argNum == 1) {
                                 printer.print("t_ctsk.stksz = ")
                                 visitExpression(arg)
@@ -611,7 +611,7 @@ namespace typescriptc {
             return getTypeString(m.parent)
         })
 
-        printer.printLn("typedef enum { " + taskNames.map((name) => name.toUpperCase() + ', ') + "OBJ_KIND_NUM } OBJ_KIND;")
+        printer.printLn("typedef enum { " + taskNames.map((name) => name.toUpperCase() + ", ").join('') + "OBJ_KIND_NUM } OBJ_KIND;")
         printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
         printer.printLn("")
         tasks.forEach((m) => {
@@ -636,8 +636,8 @@ namespace typescriptc {
             exprSt.parent = m.body!
             m.body!.statements = nArr
             visit(m.body!)
+            printer.printLn("")
         })
-        printer.printLn("")
         printer = tmpPrinter
     }
 

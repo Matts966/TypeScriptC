@@ -14,7 +14,7 @@ install-pre-commit-hook:
 test:
 	./test.sh
 t:
-	./test.sh ./tests/task.ts
+	./test.sh ./tests/sample_usermain.ts
 test-sample:
 	./test.sh ./sample_usermain.ts
 

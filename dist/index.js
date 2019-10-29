@@ -381,7 +381,7 @@ var typescriptc;
                             if (argNum == 0) {
                                 printer.print("t_ctsk.itskpri = ");
                                 visitExpression(arg);
-                                printer.printLn(";");
+                                printer.printWithoutSpace(";\n");
                             }
                             else if (argNum == 1) {
                                 printer.print("t_ctsk.stksz = ");
@@ -626,7 +626,7 @@ var typescriptc;
         var taskNames = tasks.map(function (m) {
             return getTypeString(m.parent);
         });
-        printer.printLn("typedef enum { " + taskNames.map(function (name) { return name.toUpperCase() + ', '; }) + "OBJ_KIND_NUM } OBJ_KIND;");
+        printer.printLn("typedef enum { " + taskNames.map(function (name) { return name.toUpperCase() + ", "; }).join('') + "OBJ_KIND_NUM } OBJ_KIND;");
         printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];");
         printer.printLn("");
         tasks.forEach(function (m) {
@@ -650,8 +650,8 @@ var typescriptc;
             exprSt.parent = m.body;
             m.body.statements = nArr;
             visit(m.body);
+            printer.printLn("");
         });
-        printer.printLn("");
         printer = tmpPrinter;
     };
     typescriptc.main = function () {
