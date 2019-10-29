@@ -257,12 +257,11 @@ namespace typescriptc {
                 default:
                     if (ts.isPropertyAccessExpression(expression.expression)) {
                         // TODO: add util for type checker
-                        const type = checker.getTypeAtLocation(expression.expression.expression)
+                        let type = checker.getTypeAtLocation(expression.expression.expression)
 
-                        // TODO: handle this
                         if (!type.getBaseTypes()) {
-                            console.log(checker.typeToString(type))
-                            return
+                            // handle `this`
+                            type = checker.getDeclaredTypeOfSymbol(type.symbol)
                         }
 
                         if (checker.typeToString(type.getBaseTypes()![0]) == "Task") {
@@ -282,8 +281,20 @@ namespace typescriptc {
                             } else if (expression.expression.name.getText() == "wakeUp") {
                                 const typeName = checker.typeToString(type)
                                 printer.print("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )")
+                            } else if (expression.expression.name.getText() == "sleep") {
+                                printer.print("tk_slp_tsk( ")
+                                let argNum = 0
+                                for (const arg of expression.arguments) {
+                                    if (argNum != 0) {
+                                        emitDiagnostic(expression, "invalid argument in task.start")
+                                        process.exit(1)
+                                    }
+                                    visitExpression(arg)
+                                    ++argNum
+                                }
+                                printer.printWithoutSpace(" )")
                             } else {
-                                emitDiagnostic(expression, "don't know how to handle " + expression.expression.name.getText())
+                                emitDiagnostic(expression, "PropertyAccessExpression: don't know how to handle " + expression.expression.name.getText())
                                 process.exit(1)
                             }
                         } else {
@@ -319,6 +330,10 @@ namespace typescriptc {
         }
         if (expression.getText() == "tkernel.result.ok") {
             printer.printWithoutSpace("E_OK")
+            return
+        }
+        if (expression.getText() == "tkernel.waitType.forever") {
+            printer.printWithoutSpace("TMO_FEVR")
             return
         }
         printer.printWithoutSpace(expression.getText())
