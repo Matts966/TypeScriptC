@@ -176,6 +176,10 @@ var typescriptc;
                 case "process.exit":
                     printer.print("return " + expression.arguments[0].getText() + ";");
                     return;
+                case "tkernel.ask":
+                    printer.printLn("tm_putstring((UB*)" + expression.arguments[0].getText() + ");");
+                    printer.print("tm_getchar(-1);");
+                    return;
                 // TODO: handle arguements
                 default:
                     if (ts.isPropertyAccessExpression(expression.expression)) {
