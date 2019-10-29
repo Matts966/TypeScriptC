@@ -426,15 +426,15 @@ namespace typescriptc {
             visitStatement(statement.thenStatement)
             // TODO: handle else if
             if (statement.elseStatement) {
-                printer.print(" else ")
+                printer.printWithoutSpace(" else ")
                 visitStatement(statement.elseStatement)
             }
             return
         }
         if (ts.isWhileStatement(statement)) {
-            printer.print("while(")
+            printer.print("while ( ")
             visitExpression(statement.expression)
-            printer.printWithoutSpace(") ")
+            printer.printWithoutSpace(" ) ")
             visitStatement(statement.statement)
             return
         }

@@ -3,7 +3,7 @@
 #include <libstr.h>
 
 EXPORT INT usermain( void ) {
-    if ( 1 ) {
-        tm_putstring("output!\n");
-    }
+	if ( 1 ) {
+		tm_putstring("output!\n");
+	}
 }

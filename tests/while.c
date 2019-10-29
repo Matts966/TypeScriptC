@@ -3,7 +3,7 @@
 #include <libstr.h>
 
 EXPORT INT usermain( void ) {
-    while ( 1 ) {
-        tm_putstring("output!\n");
-    }
+	while ( 1 ) {
+		tm_putstring("output!\n");
+	}
 }

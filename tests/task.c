@@ -27,7 +27,7 @@ EXPORT INT usermain( void ) {
 		return 1;
 	}
 	ObjID[TASK_A] = objid;
-	while(1) {
+	while ( 1 ) {
 		tk_sta_tsk( ObjID[TASK_A], 0 );
 	}
 }
