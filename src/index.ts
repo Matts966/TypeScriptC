@@ -143,6 +143,10 @@ namespace typescriptc {
 
     // Expression
     let visitExpression = (expression : ts.Expression) => {
+        if (expression.getText() == "true") {
+            printer.printWithoutSpace("1")
+            return
+        }
         if (ts.isNumericLiteral(expression)) {
             printer.printWithoutSpace(expression.text)
             return
@@ -296,7 +300,7 @@ namespace typescriptc {
             return
         }
         if (ts.isWhileStatement(statement)) {
-            printer.print("while (")
+            printer.print("while(")
             visitExpression(statement.expression)
             printer.printWithoutSpace(") ")
             visitStatement(statement.statement)
