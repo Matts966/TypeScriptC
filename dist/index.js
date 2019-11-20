@@ -1,15 +1,4 @@
 "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __spreadArrays = (this && this.__spreadArrays) || function () {
     for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
     for (var r = Array(s), k = 0, i = 0; i < il; i++)
@@ -30,6 +19,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
 exports.__esModule = true;
 var typescript_1 = __importDefault(require("typescript"));
 var c = __importStar(require("./c"));
+var util = __importStar(require("./utilities"));
+var diag = __importStar(require("./diagnostics"));
+var visitors = __importStar(require("./visitors"));
+var p = __importStar(require("./printer"));
 // Initial file settings
 var fileNames = process.argv.slice(2);
 var program = typescript_1["default"].createProgram(fileNames, {
@@ -41,673 +34,25 @@ var program = typescript_1["default"].createProgram(fileNames, {
 });
 // Type Checker initialization
 var checker = program.getTypeChecker();
-// Diagnostics
-var emitDiagnostics = function (diagnostics) {
-    var diagHost = {
-        getCanonicalFileName: function (f) { return f; },
-        getCurrentDirectory: function () { return "."; },
-        getNewLine: function () { return "\n"; }
-    };
-    console.log(typescript_1["default"].formatDiagnosticsWithColorAndContext(diagnostics, diagHost));
-};
-var Diagnostic = /** @class */ (function () {
-    function Diagnostic(category, file, start, length, messageText) {
-        this.category = category;
-        this.code = 0;
-        this.file = file;
-        this.start = start;
-        this.length = length;
-        this.messageText = messageText;
-    }
-    return Diagnostic;
-}());
-var emitDiagnostic = function (node, messageText) {
-    emitDiagnostics([new Diagnostic(typescript_1["default"].DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)]);
-    process.exit(1);
-};
-var getDiagnostic = function (node, messageText) {
-    return new Diagnostic(typescript_1["default"].DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText);
-};
-// Printer
-var IndentType;
-(function (IndentType) {
-    IndentType["tab"] = "\t";
-    IndentType["space"] = "s";
-})(IndentType || (IndentType = {}));
-var StdOutPrinter = /** @class */ (function () {
-    function StdOutPrinter() {
-        this.options = {
-            indentLevel: 0,
-            indentType: IndentType.tab,
-            withNewLine: false
-        };
-    }
-    StdOutPrinter.prototype.print = function (s, p) {
-        if (p === void 0) { p = this.options; }
-        if (p.indentLevel && p.indentLevel > 0) {
-            var t = p.indentType || IndentType.tab;
-            s = t.repeat(p.indentLevel) + s;
-        }
-        if (p.withNewLine) {
-            console.log(s);
-        }
-        else {
-            process.stdout.write(s);
-        }
-        return this;
-    };
-    StdOutPrinter.prototype.printLn = function (s, p) {
-        if (p === void 0) { p = this.options; }
-        var opt = __assign({}, this.options);
-        this.options = p;
-        this.options.withNewLine = true;
-        this.print(s, this.options);
-        this.options = opt;
-        return this;
-    };
-    StdOutPrinter.prototype.printWithoutSpace = function (s) {
-        process.stdout.write(s);
-    };
-    StdOutPrinter.prototype.indent = function () {
-        ++this.options.indentLevel;
-        return this;
-    };
-    StdOutPrinter.prototype.unindent = function () {
-        --this.options.indentLevel;
-        return this;
-    };
-    StdOutPrinter.prototype.setOptions = function (p) {
-        this.options = p;
-        return this;
-    };
-    StdOutPrinter.prototype.removeSpaces = function () {
-        var tmpOptions = __assign({}, this.options);
-        this.options.indentLevel = 0;
-        this.options.withNewLine = false;
-        return tmpOptions;
-    };
-    return StdOutPrinter;
-}());
-var BufferedPrinter = /** @class */ (function () {
-    function BufferedPrinter() {
-        this.options = {
-            indentLevel: 1,
-            indentType: IndentType.tab,
-            withNewLine: false
-        };
-        this.buffer = "";
-    }
-    BufferedPrinter.prototype.print = function (s, p) {
-        if (p === void 0) { p = this.options; }
-        if (p.indentLevel && p.indentLevel > 0) {
-            var t = p.indentType || IndentType.tab;
-            s = t.repeat(p.indentLevel) + s;
-        }
-        if (p.withNewLine) {
-            this.buffer += s + '\n';
-        }
-        else {
-            this.buffer += s;
-        }
-        return this;
-    };
-    BufferedPrinter.prototype.printLn = function (s, p) {
-        if (p === void 0) { p = this.options; }
-        var opt = __assign({}, this.options);
-        this.options = p;
-        this.options.withNewLine = true;
-        this.print(s, this.options);
-        this.options = opt;
-        return this;
-    };
-    BufferedPrinter.prototype.printWithoutSpace = function (s) {
-        this.buffer += s;
-    };
-    BufferedPrinter.prototype.outputBuffer = function () {
-        process.stdout.write(this.buffer);
-    };
-    BufferedPrinter.prototype.indent = function () {
-        ++this.options.indentLevel;
-        return this;
-    };
-    BufferedPrinter.prototype.unindent = function () {
-        --this.options.indentLevel;
-        return this;
-    };
-    BufferedPrinter.prototype.setOptions = function (p) {
-        this.options = p;
-        return this;
-    };
-    BufferedPrinter.prototype.removeSpaces = function () {
-        var tmpOptions = __assign({}, this.options);
-        this.options.indentLevel = 0;
-        this.options.withNewLine = false;
-        return tmpOptions;
-    };
-    return BufferedPrinter;
-}());
-var printer = new BufferedPrinter();
-// Utility
-var isGlobal = function (node) {
-    if (typescript_1["default"].isSourceFile(node.parent))
-        return true;
-    return false;
-};
-// Import Statement
-var tKernelImported = false;
-var isImportTKernel = function (i) {
-    var ic = i.importClause;
-    if (!ic)
-        return;
-    var namedImport = ic.namedBindings;
-    if (namedImport.name.text != "tkernel") {
-        return false;
-    }
-    tKernelImported = true;
-    return true;
-};
-var handleImport = function (node) {
-    if (typescript_1["default"].isImportDeclaration(node)) {
-        if (!isImportTKernel(node)) {
-            emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`');
-            process.exit(1);
-        }
-        return true;
-    }
-    if (!tKernelImported) {
-        emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`');
-        process.exit(1);
-    }
-};
-// Camel to snake
-var camelToSnake = function (s, big) {
-    if (big === void 0) { big = false; }
-    s = s.slice(0, 1).toLowerCase() + s.slice(1);
-    var snake = s.replace(/[A-Z]/g, function (letter) { return "_" + letter.toLowerCase(); });
-    if (big) {
-        return snake.toUpperCase();
-    }
-    return snake;
-};
-// Expression
-var visitExpression = function (expression) {
-    if (typescript_1["default"].isBinaryExpression(expression)) {
-        var tmpOptions = printer.removeSpaces();
-        visitExpression(expression.left);
-        printer.printWithoutSpace(" " + expression.operatorToken.getText() + " ");
-        visitExpression(expression.right);
-        printer.setOptions(tmpOptions);
-        return;
-    }
-    if (typescript_1["default"].isNumericLiteral(expression)) {
-        printer.printWithoutSpace(expression.text);
-        return;
-    }
-    if (typescript_1["default"].isCallExpression(expression)) {
-        switch (expression.expression.getText()) {
-            case "console.log":
-                // TODO: safer handling
-                printer.print("tm_putstring(\"" + expression.arguments.map(function (e) {
-                    if (typescript_1["default"].isLiteralExpression(e))
-                        return e.text.split('').map(function (c) {
-                            var cc = c.charCodeAt(0);
-                            if (31 < cc && 127 > cc) {
-                                return c;
-                            }
-                            emitDiagnostic(e, "control sequence " + cc + " is not allowed now");
-                            process.exit(1);
-                        }).join('');
-                    else
-                        process.exit(1);
-                }) + "\\n\")");
-                return;
-            case "process.exit":
-                printer.print("return " + expression.arguments[0].getText());
-                return;
-            case "tkernel.ask":
-                printer.printLn("tm_putstring((UB*)" + expression.arguments[0].getText() + ");");
-                printer.print("tm_getchar(-1)");
-                return;
-            // TODO: handle arguements
-            default:
-                if (typescript_1["default"].isPropertyAccessExpression(expression.expression)) {
-                    // TODO: add util for type checker
-                    var type = checker.getTypeAtLocation(expression.expression.expression);
-                    if (!type.getBaseTypes()) {
-                        // handle `this`
-                        type = checker.getDeclaredTypeOfSymbol(type.symbol);
-                    }
-                    if (checker.typeToString(type.getBaseTypes()[0]) == "Task") {
-                        if (expression.expression.name.getText() == "start") {
-                            var typeName = checker.typeToString(type);
-                            printer.print("tk_sta_tsk( ObjID[" + camelToSnake(typeName, true) + "], ");
-                            var argNum = 0;
-                            for (var _i = 0, _a = expression.arguments; _i < _a.length; _i++) {
-                                var arg = _a[_i];
-                                if (argNum != 0) {
-                                    emitDiagnostic(expression, "invalid argument in task.start");
-                                    process.exit(1);
-                                }
-                                visitExpression(arg);
-                                ++argNum;
-                            }
-                            printer.printWithoutSpace(" )");
-                        }
-                        else if (expression.expression.name.getText() == "wakeUp") {
-                            var typeName = checker.typeToString(type);
-                            printer.print("tk_wup_tsk( ObjID[" + camelToSnake(typeName, true) + "] )");
-                        }
-                        else if (expression.expression.name.getText() == "sleep") {
-                            printer.print("tk_slp_tsk( ");
-                            var argNum = 0;
-                            for (var _b = 0, _c = expression.arguments; _b < _c.length; _b++) {
-                                var arg = _c[_b];
-                                if (argNum != 0) {
-                                    emitDiagnostic(expression, "invalid argument in task.start");
-                                    process.exit(1);
-                                }
-                                visitExpression(arg);
-                                ++argNum;
-                            }
-                            printer.printWithoutSpace(" )");
-                        }
-                        else {
-                            emitDiagnostic(expression, "PropertyAccessExpression: don't know how to handle " + expression.expression.name.getText());
-                            process.exit(1);
-                        }
-                    }
-                    else {
-                        emitDiagnostic(expression, "don't know how to handle " + checker.typeToString(type));
-                        process.exit(1);
-                    }
-                    return;
-                }
-                // TODO: check this is needed
-                // Maybe for the nodes without pos because of syntesis such as tk_ext_tsk.
-                if (typescript_1["default"].isIdentifier(expression.expression)) {
-                    printer.print(expression.expression.text + "()");
-                    return;
-                }
-                printer.print(expression.expression.getText() + "()");
-        }
-        // TODO: Add type map
-        // for (const arg of expression.arguments) {
-        //     process.stdout.write(checker.typeToString(checker.getTypeAtLocation(node)) + " ")
-        //     printer.print(arg.getText(), { indentLevel: 0 })
-        //     console.log(arg.getText())
-        // }
-        // printer.printLn(");")
-        return;
-    }
-    if (expression.getText() == "true") {
-        printer.printWithoutSpace("1");
-        return;
-    }
-    if (expression.getText() == "tkernel.result.ok") {
-        printer.printWithoutSpace("E_OK");
-        return;
-    }
-    if (expression.getText() == "tkernel.waitType.forever") {
-        printer.printWithoutSpace("TMO_FEVR");
-        return;
-    }
-    printer.printWithoutSpace(expression.getText());
-};
-var handleClassMembers = function (members) {
-    for (var _i = 0, members_1 = members; _i < members_1.length; _i++) {
-        var member = members_1[_i];
-        var invalidOverrideMessage = "please override only task with protected keyword";
-        if (typescript_1["default"].isMethodDeclaration(member)) {
-            if (!member.modifiers) {
-                emitDiagnostic(member, invalidOverrideMessage);
-                process.exit(1);
-            }
-            for (var _a = 0, _b = member.modifiers; _a < _b.length; _a++) {
-                var mod = _b[_a];
-                if (mod.getText() == "protected") {
-                    continue;
-                }
-                emitDiagnostic(member, invalidOverrideMessage);
-                process.exit(1);
-            }
-            // console.log(member.name.getText())
-            if (member.name.getText() == "task") {
-                addTask(member);
-                continue;
-            }
-            emitDiagnostic(member, invalidOverrideMessage);
-            process.exit(1);
-        }
-        emitDiagnostic(member, invalidOverrideMessage);
-        process.exit(1);
-    }
-};
-// Statement
-var isStatement = function (node) {
-    if (typescript_1["default"].isExpressionStatement(node) || typescript_1["default"].isIfStatement(node) || typescript_1["default"].isWhileStatement(node) || typescript_1["default"].isForStatement || typescript_1["default"].isVariableStatement(node) || typescript_1["default"].isReturnStatement(node) || typescript_1["default"].isBlock(node)) {
-        return true;
-    }
-    return false;
-};
-var visitExpressionStatement = function (expressionStatement) {
-    visitExpression(expressionStatement.expression);
-    printer.printWithoutSpace(";\n");
-};
-var visitVariableStatement = function (variableStatement) {
-    visitVariableDeclarationList(variableStatement.declarationList);
-};
-var visitVariableDeclarationList = function (variableDeclarationList) {
-    for (var _i = 0, _a = variableDeclarationList.declarations; _i < _a.length; _i++) {
-        var d = _a[_i];
-        if (!d.initializer) {
-            emitDiagnostic(d, "lack of initialization");
-            process.exit(1);
-        }
-        var expr = d.initializer;
-        if (typescript_1["default"].isNumericLiteral(expr)) {
-            // TODO: check if it is int
-            printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText());
-            return;
-        }
-        if (typescript_1["default"].isNewExpression(expr)) {
-            if (typescript_1["default"].isClassExpression(expr.expression)) {
-                var sym = checker.getSymbolAtLocation(expr.expression.name);
-                var type = checker.getDeclaredTypeOfSymbol(sym);
-                // console.log(checker.typeToString(type))
-                // console.log(type.isClass())
-                var onlyTaskAllowedMessage = "classes that extends only Task are allowed";
-                var baseTypes = type.getBaseTypes();
-                if (!baseTypes || baseTypes.length != 1) {
-                    emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                if (checker.typeToString(baseTypes[0]) != "Task") {
-                    emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                handleClassMembers(expr.expression.members);
-                if (!expr.arguments) {
-                    printer.printLn("t_ctsk.stksz = 1024;");
-                    printer.printLn("t_ctsk.itskpri = 1;");
-                }
-                else {
-                    var argNum = 0;
-                    for (var _b = 0, _c = expr.arguments; _b < _c.length; _b++) {
-                        var arg = _c[_b];
-                        if (argNum == 0) {
-                            printer.print("t_ctsk.itskpri = ");
-                            visitExpression(arg);
-                            printer.printWithoutSpace(";\n");
-                        }
-                        else if (argNum == 1) {
-                            printer.print("t_ctsk.stksz = ");
-                            visitExpression(arg);
-                            printer.printLn(";");
-                        }
-                        else {
-                            emitDiagnostic(expr.expression, "invalid arguments");
-                            process.exit(1);
-                        }
-                        ++argNum;
-                    }
-                    if (argNum == 0) {
-                        printer.printLn("t_ctsk.stksz = 1024;");
-                        printer.printLn("t_ctsk.itskpri = 1;");
-                    }
-                    if (argNum == 1) {
-                        printer.printLn("t_ctsk.stksz = 1024;");
-                    }
-                }
-                var taskIdent = expr.expression.name;
-                if (!taskIdent) {
-                    emitDiagnostic(expr.expression, "invalid task");
-                    process.exit(1);
-                }
-                var taskName = camelToSnake(taskIdent.text);
-                printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");");
-                printer.printLn("t_ctsk.task = " + taskName + ";");
-                printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
-                printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
-                printer.printLn("return 1;");
-                printer.unindent().printLn("}");
-                printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
-                continue;
-            }
-            // TODO: merge handling with ClassExpression by makeing function
-            if (typescript_1["default"].isIdentifier(expr.expression)) {
-                var sym = checker.getSymbolAtLocation(expr.expression);
-                var type = checker.getDeclaredTypeOfSymbol(sym);
-                // console.log(checker.typeToString(type))
-                // console.log(type.isClass())
-                var onlyTaskAllowedMessage = "classes that extends only Task are allowed";
-                var baseTypes = type.getBaseTypes();
-                if (!baseTypes || baseTypes.length != 1) {
-                    emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                if (checker.typeToString(baseTypes[0]) != "Task") {
-                    emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                if (!expr.arguments) {
-                    printer.printLn("t_ctsk.stksz = 1024;");
-                    printer.printLn("t_ctsk.itskpri = 1;");
-                }
-                else {
-                    var argNum = 0;
-                    for (var _d = 0, _e = expr.arguments; _d < _e.length; _d++) {
-                        var arg = _e[_d];
-                        if (argNum == 0) {
-                            printer.print("t_ctsk.itskpri = ");
-                            visitExpression(arg);
-                            printer.printLn(";");
-                        }
-                        else if (argNum == 1) {
-                            printer.print("t_ctsk.stksz = ");
-                            visitExpression(arg);
-                            printer.printLn(";");
-                        }
-                        else {
-                            emitDiagnostic(expr.expression, "invalid arguments");
-                            process.exit(1);
-                        }
-                        ++argNum;
-                    }
-                    if (argNum == 0) {
-                        printer.printLn("t_ctsk.stksz = 1024;");
-                        printer.printLn("t_ctsk.itskpri = 1;");
-                    }
-                    if (argNum == 1) {
-                        printer.printLn("t_ctsk.stksz = 1024;");
-                    }
-                }
-                var taskIdent = expr.expression;
-                if (!taskIdent) {
-                    emitDiagnostic(expr.expression, "invalid task");
-                    process.exit(1);
-                }
-                var taskName = camelToSnake(taskIdent.text);
-                printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");");
-                printer.printLn("t_ctsk.task = " + taskName + ";");
-                printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
-                printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
-                printer.printLn("return 1;");
-                printer.unindent().printLn("}");
-                printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
-                continue;
-            }
-        }
-        emitDiagnostic(d, "don't know how to handle this initializer " + d.initializer);
-        process.exit(1);
-        // const sym = checker.getSymbolAtLocation(d.name)
-        // const type = checker.getDeclaredTypeOfSymbol(sym!)
-        // console.log(checker.typeToString(type))
-        // const sym = checker.getSymbolAtLocation(d)
-        // const type = checker.getDeclaredTypeOfSymbol(sym!)
-        // const type = checker.getTypeAtLocation(d) as ts.TypeReference;
-        // const typeArg = type.typeArguments![0];
-    }
-};
-var visitStatement = function (statement) {
-    if (typescript_1["default"].isExpressionStatement(statement)) {
-        visitExpressionStatement(statement);
-        return;
-    }
-    if (typescript_1["default"].isVariableStatement(statement)) {
-        visitVariableStatement(statement);
-        return;
-    }
-    if (typescript_1["default"].isIfStatement(statement)) {
-        printer.print("if ( ");
-        visitExpression(statement.expression);
-        printer.printWithoutSpace(" )");
-        if (typescript_1["default"].isBlock(statement.thenStatement)) {
-            printer.printWithoutSpace(" ");
-        }
-        else {
-            printer.printWithoutSpace("\n");
-            printer.indent();
-        }
-        visitStatement(statement.thenStatement);
-        if (!typescript_1["default"].isBlock(statement.thenStatement)) {
-            printer.unindent();
-        }
-        // TODO: handle else if
-        if (statement.elseStatement) {
-            printer.printWithoutSpace(" else ");
-            if (!typescript_1["default"].isBlock(statement.elseStatement)) {
-                printer.printWithoutSpace("\n");
-                printer.indent();
-            }
-            visitStatement(statement.elseStatement);
-            if (!typescript_1["default"].isBlock(statement.elseStatement)) {
-                printer.unindent();
-            }
-        }
-        return;
-    }
-    if (typescript_1["default"].isWhileStatement(statement)) {
-        printer.print("while ( ");
-        visitExpression(statement.expression);
-        printer.printWithoutSpace(" ) ");
-        visitStatement(statement.statement);
-        return;
-    }
-    if (typescript_1["default"].isForStatement(statement)) {
-        printer.print("for ( ");
-        var ini = statement.initializer;
-        if (ini) {
-            if (typescript_1["default"].isVariableDeclarationList(ini)) {
-                visitVariableDeclarationList(ini);
-            }
-            else {
-                visitExpression(ini);
-            }
-        }
-        printer.printWithoutSpace("; ");
-        var cond = statement.condition;
-        if (cond) {
-            visitExpression(cond);
-        }
-        printer.printWithoutSpace("; ");
-        var incre = statement.incrementor;
-        if (incre) {
-            visitExpression(incre);
-        }
-        printer.printWithoutSpace(" ) ");
-        visitStatement(statement.statement);
-        return;
-    }
-    if (typescript_1["default"].isBlock(statement)) {
-        printer.printLn("{", { indentLevel: 0 });
-        printer.indent();
-        statement.statements.forEach(function (e) {
-            visitStatement(e);
-        });
-        printer.unindent();
-        printer.printLn("}");
-        return;
-    }
-    emitDiagnostic(statement, "visitStatement: don't know how to handle " + typescript_1["default"].SyntaxKind[statement.kind]);
-    process.exit(1);
-};
-var visitClassDeclaration = function (classDeclaration) {
-    if (!isGlobal(classDeclaration))
-        emitDiagnostic(classDeclaration, "ClassDeclarations is only allowed in global scope");
-    var notAllowedDiagnostic = function () { return emitDiagnostic(classDeclaration, "ClassDeclarations other than tasks are not allowed"); };
-    var heritage = classDeclaration.heritageClauses;
-    if (!heritage || heritage.length != 1 && heritage[0].types.length != 1) {
-        notAllowedDiagnostic();
-        return;
-    }
-    if (heritage[0].types[0].getText() != "tkernel.Task") {
-        notAllowedDiagnostic();
-        return;
-    }
-    notAllowedDiagnostic = function () { return emitDiagnostic(classDeclaration, "Task Declaration should be only with task function"); };
-    if (classDeclaration.members.length != 1) {
-        notAllowedDiagnostic();
-        return;
-    }
-    var m = classDeclaration.members[0];
-    if (!m || !m.name || m.name.getText() != "task") {
-        notAllowedDiagnostic();
-    }
-    handleClassMembers(classDeclaration.members);
-};
-// General visit function
-var visit = function (node) {
-    if (node.kind == typescript_1["default"].SyntaxKind.EndOfFileToken) {
-        return;
-    }
-    if (handleImport(node))
-        return;
-    if (typescript_1["default"].isClassDeclaration(node)) {
-        return visitClassDeclaration(node);
-    }
-    if (isStatement(node)) {
-        return visitStatement(node);
-    }
-    if (typescript_1["default"].isFunctionDeclaration(node)) {
-        console.log("FunctionDeclaration: " + node.body);
-        console.log();
-        return;
-    }
-    //TODO: allow only constant task declaration
-    emitDiagnostic(node, "visit: don't know how to handle " + typescript_1["default"].SyntaxKind[node.kind]);
-    process.exit(1);
-};
-var tasks = [];
-var addTask = function (method) {
-    tasks.push(method);
-};
-var getTypeString = function (node) {
-    var type = checker.getTypeAtLocation(node);
-    var typeName = checker.typeToString(type);
-    var splited = typeName.split(" ");
-    if (splited.length != 1) {
-        return camelToSnake(splited[1]);
-    }
-    return camelToSnake(typeName);
-};
-var printTasks = function () {
-    if (tasks.length == 0) {
+var printer = new p.BufferedPrinter();
+var printTasks = function (v) {
+    if (v.tasks.length == 0) {
         return;
     }
     var tmpPrinter = printer;
-    printer = new StdOutPrinter;
-    var taskNames = tasks.map(function (m) {
-        return getTypeString(m.parent);
+    printer = new p.StdOutPrinter;
+    var taskNames = v.tasks.map(function (m) {
+        return util.getTypeString(m.parent, v.checker);
     });
     printer.printLn("typedef enum { " + taskNames.map(function (name) { return name.toUpperCase() + ", "; }).join('') + "OBJ_KIND_NUM } OBJ_KIND;");
     printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];");
     printer.printLn("");
-    tasks.forEach(function (m) {
-        var taskSig = "EXPORT void " + getTypeString(m.parent) + "(INT stacd, VP exinf)";
+    v.tasks.forEach(function (m) {
+        var taskSig = "EXPORT void " + util.getTypeString(m.parent, v.checker) + "(INT stacd, VP exinf)";
         printer.printLn(taskSig + ';');
         printer.print(taskSig + " ");
         if (!m.body) {
-            emitDiagnostic(m, "no task body!");
+            diag.emitDiagnostic(m, "no task body!");
             process.exit(1);
         }
         // Add tk_ext_tsk to the end of task
@@ -722,22 +67,24 @@ var printTasks = function () {
         var nArr = typescript_1["default"].createNodeArray(__spreadArrays(m.body.statements, [exprSt]));
         exprSt.parent = m.body;
         m.body.statements = nArr;
-        visit(m.body);
+        v.visit(m.body);
         printer.printLn("");
     });
     printer = tmpPrinter;
 };
 exports.main = function () {
+    // For future use
     var cnp = new c.Program();
     cnp.includes.push();
     // Apply type check
     var allDiagnostics = typescript_1["default"].getPreEmitDiagnostics(program)
         .concat();
     if (allDiagnostics.length > 0) {
-        emitDiagnostics(allDiagnostics);
+        diag.emitDiagnostics(allDiagnostics);
         process.exit(1);
     }
     console.log("#include <tk/tkernel.h>\n#include <tm/tmonitor.h>\n#include <libstr.h>\n");
+    var visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
     // Main loop
     for (var _i = 0, _a = program.getSourceFiles(); _i < _a.length; _i++) {
         var sourceFile = _a[_i];
@@ -756,12 +103,12 @@ exports.main = function () {
                 }
             }
             // Walk the tree to search source code.
-            typescript_1["default"].forEachChild(sourceFile, visit);
+            typescript_1["default"].forEachChild(sourceFile, visitor.visit);
         }
     }
-    printTasks();
+    printTasks(visitor);
     console.log("EXPORT INT usermain( void ) {");
-    if (tasks.length != 0) {
+    if (visitor.tasks.length != 0) {
         console.log("\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
     }
     printer.outputBuffer();
