@@ -32,25 +32,22 @@ var program = typescript_1["default"].createProgram(fileNames, {
     strictNullChecks: true,
     noImplicitAny: true
 });
-// Type Checker initialization
-var checker = program.getTypeChecker();
-var printer = new p.BufferedPrinter();
 var printTasks = function (v) {
     if (v.tasks.length == 0) {
         return;
     }
-    var tmpPrinter = printer;
-    printer = new p.StdOutPrinter;
+    var tmpPrinter = v.printer;
+    v.printer = new p.StdOutPrinter;
     var taskNames = v.tasks.map(function (m) {
         return util.getTypeString(m.parent, v.checker);
     });
-    printer.printLn("typedef enum { " + taskNames.map(function (name) { return name.toUpperCase() + ", "; }).join('') + "OBJ_KIND_NUM } OBJ_KIND;");
-    printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];");
-    printer.printLn("");
+    v.printer.printLn("typedef enum { " + taskNames.map(function (name) { return name.toUpperCase() + ", "; }).join('') + "OBJ_KIND_NUM } OBJ_KIND;");
+    v.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];");
+    v.printer.printLn("");
     v.tasks.forEach(function (m) {
         var taskSig = "EXPORT void " + util.getTypeString(m.parent, v.checker) + "(INT stacd, VP exinf)";
-        printer.printLn(taskSig + ';');
-        printer.print(taskSig + " ");
+        v.printer.printLn(taskSig + ';');
+        v.printer.print(taskSig + " ");
         if (!m.body) {
             diag.emitDiagnostic(m, "no task body!");
             process.exit(1);
@@ -68,9 +65,9 @@ var printTasks = function (v) {
         exprSt.parent = m.body;
         m.body.statements = nArr;
         v.visit(m.body);
-        printer.printLn("");
+        v.printer.printLn("");
     });
-    printer = tmpPrinter;
+    v.printer = tmpPrinter;
 };
 exports.main = function () {
     // For future use
@@ -84,6 +81,8 @@ exports.main = function () {
         process.exit(1);
     }
     console.log("#include <tk/tkernel.h>\n#include <tm/tmonitor.h>\n#include <libstr.h>\n");
+    // Type Checker initialization
+    var checker = program.getTypeChecker();
     var visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
     // Main loop
     for (var _i = 0, _a = program.getSourceFiles(); _i < _a.length; _i++) {
@@ -111,7 +110,7 @@ exports.main = function () {
     if (visitor.tasks.length != 0) {
         console.log("\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
     }
-    printer.outputBuffer();
+    visitor.printer.outputBuffer();
     console.log("}");
 };
 exports.main();

@@ -16,29 +16,26 @@ let program = ts.createProgram(fileNames, {
     noImplicitAny: true,
 })
 
-// Type Checker initialization
-let checker = program.getTypeChecker()
-
-let printer : p.Printer = new p.BufferedPrinter()
-
 const printTasks = (v : visitors.visitor) => {
     if (v.tasks.length == 0) {
         return
     }
 
-    const tmpPrinter = printer
-    printer = new p.StdOutPrinter
+    let tmpPrinter = v.printer
+
+    v.printer = new p.StdOutPrinter
+
     const taskNames = v.tasks.map((m) => {
         return util.getTypeString(m.parent, v.checker)
     })
 
-    printer.printLn("typedef enum { " + taskNames.map((name) => name.toUpperCase() + ", ").join('') + "OBJ_KIND_NUM } OBJ_KIND;")
-    printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
-    printer.printLn("")
+    v.printer.printLn("typedef enum { " + taskNames.map((name) => name.toUpperCase() + ", ").join('') + "OBJ_KIND_NUM } OBJ_KIND;")
+    v.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
+    v.printer.printLn("")
     v.tasks.forEach((m) => {
         const taskSig = "EXPORT void " + util.getTypeString(m.parent, v.checker) + "(INT stacd, VP exinf)"
-        printer.printLn(taskSig + ';')
-        printer.print(taskSig + " ")
+        v.printer.printLn(taskSig + ';')
+        v.printer.print(taskSig + " ")
         if (!m.body) {
             diag.emitDiagnostic(m, "no task body!")
             process.exit(1)
@@ -57,9 +54,10 @@ const printTasks = (v : visitors.visitor) => {
         exprSt.parent = m.body!
         m.body!.statements = nArr
         v.visit(m.body!)
-        printer.printLn("")
+        v.printer.printLn("")
     })
-    printer = tmpPrinter
+
+    v.printer = tmpPrinter
 }
 
 export const main = () => {
@@ -79,6 +77,9 @@ export const main = () => {
 #include <tm/tmonitor.h>
 #include <libstr.h>
 `)
+
+    // Type Checker initialization
+    let checker = program.getTypeChecker()
 
     const visitor = new visitors.visitor(new p.BufferedPrinter(), checker)
 
@@ -116,7 +117,7 @@ export const main = () => {
 `);
     }
 
-    (printer as p.BufferedPrinter).outputBuffer()
+    (visitor.printer as p.BufferedPrinter).outputBuffer()
 
     console.log(`}`)
 }

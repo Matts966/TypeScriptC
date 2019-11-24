@@ -10,14 +10,12 @@ export class visitor {
     tasks : ts.MethodDeclaration[]
 
     constructor(printer : printer.Printer, checker : ts.TypeChecker) {
-        console.log(checker.getTypeAtLocation)
         this.printer = printer
         this.checker = checker
         this.tasks = []
     }
 
     visit = (node : ts.Node) => {
-        console.log(this.checker.getTypeAtLocation)
         visit(node, this)
     }
 }

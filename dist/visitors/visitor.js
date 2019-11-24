@@ -18,10 +18,8 @@ var visitor = /** @class */ (function () {
     function visitor(printer, checker) {
         var _this = this;
         this.visit = function (node) {
-            console.log(_this.checker.getTypeAtLocation);
             visit(node, _this);
         };
-        console.log(checker.getTypeAtLocation);
         this.printer = printer;
         this.checker = checker;
         this.tasks = [];
