@@ -23,3 +23,18 @@ export const getTypeString = (node : ts.Node, checker : ts.TypeChecker) => {
     }
     return camelToSnake(typeName)
 }
+
+export const getProgramFromArgV = () => {
+    let fileNames = process.argv.slice(2)
+    return ts.createProgram(fileNames, {
+        target: ts.ScriptTarget.ESNext,
+        module: ts.ModuleKind.ESNext,
+        strict: true,
+        strictNullChecks: true,
+        noImplicitAny: true,
+    })
+}
+
+export const getPreEmitDiagnostics = (p : ts.Program) => {
+    return ts.getPreEmitDiagnostics(p)
+}

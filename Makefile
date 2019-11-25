@@ -8,7 +8,7 @@ clean: dist
 	rm dist/*
 	rm *.js
 fmt:
-	npx tsfmt -r src/*.ts tests/*.ts
+	npx tsfmt -r src/*.ts src/**/*.ts
 install-pre-commit-hook:
 	sudo ln -sf $(PWD)/config/hooks/pre-commit $(PWD)/.git/hooks/pre-commit
 test:

@@ -3,6 +3,7 @@
         "module": "commonjs",
         "strict": true,
         "strictNullChecks": true,
+        "noImplicitAny": true,
         "noImplicitThis": true,
         "preserveConstEnums": true,
         "sourceMap": true,

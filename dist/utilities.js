@@ -27,4 +27,17 @@ exports.getTypeString = function (node, checker) {
     }
     return exports.camelToSnake(typeName);
 };
+exports.getProgramFromArgV = function () {
+    var fileNames = process.argv.slice(2);
+    return typescript_1["default"].createProgram(fileNames, {
+        target: typescript_1["default"].ScriptTarget.ESNext,
+        module: typescript_1["default"].ModuleKind.ESNext,
+        strict: true,
+        strictNullChecks: true,
+        noImplicitAny: true
+    });
+};
+exports.getPreEmitDiagnostics = function (p) {
+    return typescript_1["default"].getPreEmitDiagnostics(p);
+};
 //# sourceMappingURL=utilities.js.map
