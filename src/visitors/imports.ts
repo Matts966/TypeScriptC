@@ -3,7 +3,7 @@ import * as diag from '../diagnostics'
 
 let tKernelImported = false
 
-export let isImportTKernel = (i : ts.ImportDeclaration) => {
+export const isImportTKernel = (i : ts.ImportDeclaration) => {
     const ic = i.importClause
     if (!ic) return
     let namedImport = ic.namedBindings as ts.NamespaceImport
@@ -14,7 +14,7 @@ export let isImportTKernel = (i : ts.ImportDeclaration) => {
     return true
 }
 
-export let handleImport = (node : ts.Node) => {
+export const handleImport = (node : ts.Node) => {
     if (ts.isImportDeclaration(node)) {
         if (!isImportTKernel(node)) {
             diag.emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`')
@@ -26,4 +26,12 @@ export let handleImport = (node : ts.Node) => {
         diag.emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`')
         process.exit(1)
     }
+}
+
+export const importsToIncludes = (imports : string[]) => {
+    return [
+        `#include <tk/tkernel.h>`,
+        `#include <tm/tmonitor.h>`,
+        `#include <libstr.h>`
+    ]
 }

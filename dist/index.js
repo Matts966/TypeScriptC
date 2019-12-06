@@ -24,11 +24,11 @@ var main = function () {
         diag.emitDiagnostics(allDiagnostics);
         process.exit(1);
     }
-    console.log("#include <tk/tkernel.h>\n#include <tm/tmonitor.h>\n#include <libstr.h>\n");
     // Type Checker initialization
     var checker = program.getTypeChecker();
     var visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
     visitor.visitProgram(program);
+    visitor.printImports();
     visitor.printTasks();
     console.log("EXPORT INT usermain( void ) {");
     if (visitor.tasks.length != 0) {

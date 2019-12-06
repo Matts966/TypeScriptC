@@ -19,17 +19,14 @@ const main = () => {
         process.exit(1)
     }
 
-    console.log(`#include <tk/tkernel.h>
-#include <tm/tmonitor.h>
-#include <libstr.h>
-`)
-
     // Type Checker initialization
     let checker = program.getTypeChecker()
 
     const visitor = new visitors.visitor(new p.BufferedPrinter(), checker)
 
     visitor.visitProgram(program)
+
+    visitor.printImports()
 
     visitor.printTasks()
 

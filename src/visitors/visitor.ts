@@ -9,11 +9,13 @@ export class visitor {
     printer : p.Printer
     checker : ts.TypeChecker
     tasks : ts.MethodDeclaration[]
+    private imports : string[]
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
         this.printer = printer
         this.checker = checker
         this.tasks = []
+        this.imports = []
     }
 
     visit = (node : ts.Node) => {
@@ -21,6 +23,7 @@ export class visitor {
             return
         }
         if (imports.handleImport(node)) {
+            this.imports.push("tkernel")
             return
         }
         if (ts.isClassDeclaration(node)) {
@@ -104,6 +107,23 @@ export class visitor {
             this.visit(m.body!)
             this.printer.printLn("")
         })
+
+        this.printer = tmpPrinter
+    }
+
+    printImports = () => {
+        if (this.imports.length == 0) {
+            return
+        }
+
+        let tmpPrinter = this.printer
+
+        this.printer = new p.StdOutPrinter
+
+        imports.importsToIncludes(this.imports).forEach((include) => {
+            this.printer.printLn(include)
+        })
+        this.printer.printLn("")
 
         this.printer = tmpPrinter
     }

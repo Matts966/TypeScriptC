@@ -37,4 +37,11 @@ exports.handleImport = function (node) {
         process.exit(1);
     }
 };
+exports.importsToIncludes = function (imports) {
+    return [
+        "#include <tk/tkernel.h>",
+        "#include <tm/tmonitor.h>",
+        "#include <libstr.h>"
+    ];
+};
 //# sourceMappingURL=imports.js.map

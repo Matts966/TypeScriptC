@@ -31,6 +31,7 @@ var visitor = /** @class */ (function () {
                 return;
             }
             if (imports.handleImport(node)) {
+                _this.imports.push("tkernel");
                 return;
             }
             if (typescript_1["default"].isClassDeclaration(node)) {
@@ -107,9 +108,21 @@ var visitor = /** @class */ (function () {
             });
             _this.printer = tmpPrinter;
         };
+        this.printImports = function () {
+            if (_this.imports.length == 0) {
+                return;
+            }
+            var tmpPrinter = _this.printer;
+            _this.printer = new p.StdOutPrinter;
+            imports.importsToIncludes(_this.imports).forEach(function (include) {
+                _this.printer.printLn(include);
+            });
+            _this.printer = tmpPrinter;
+        };
         this.printer = printer;
         this.checker = checker;
         this.tasks = [];
+        this.imports = [];
     }
     return visitor;
 }());
