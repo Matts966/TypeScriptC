@@ -117,6 +117,7 @@ var visitor = /** @class */ (function () {
             imports.importsToIncludes(_this.imports).forEach(function (include) {
                 _this.printer.printLn(include);
             });
+            _this.printer.printLn("");
             _this.printer = tmpPrinter;
         };
         this.printer = printer;
