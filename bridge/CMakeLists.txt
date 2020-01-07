@@ -1,5 +1,19 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 2.8)
 
-add_clang_executable(find-class-decls FindClassDecls.cpp)
+set(CMAKE_MODULE_PATH
+  ${CMAKE_MODULE_PATH}
+  "${CMAKE_SOURCE_DIR}/cmake/modules"
+)
 
-target_link_libraries(find-class-decls clangTooling)
+find_package(LibClangTooling REQUIRED)
+
+add_definitions(${LibClangTooling_DEFINITIONS})
+
+include_directories(
+  ${LibClangTooling_INCLUDE_DIRS}
+)
+
+add_executable(find-class-decls FindClassDecls.cpp)
+target_link_libraries(find-class-decls
+  ${LibClangTooling_LIBRARIES}
+)
