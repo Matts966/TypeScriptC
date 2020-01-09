@@ -17,3 +17,8 @@ add_executable(find-class-decls FindClassDecls.cpp)
 target_link_libraries(find-class-decls
   ${LibClangTooling_LIBRARIES}
 )
+
+add_executable(tooling-sample ToolingSample.cpp)
+target_link_libraries(tooling-sample
+  ${LibClangTooling_LIBRARIES}
+)

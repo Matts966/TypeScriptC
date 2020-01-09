@@ -56,17 +56,6 @@ CMAKE_BINARY_DIR = /workdir
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target rebuild_cache
-rebuild_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
-.PHONY : rebuild_cache
-
-# Special rule for the target rebuild_cache
-rebuild_cache/fast: rebuild_cache
-
-.PHONY : rebuild_cache/fast
-
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
@@ -77,6 +66,17 @@ edit_cache:
 edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
+
+# Special rule for the target rebuild_cache
+rebuild_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
+	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : rebuild_cache
+
+# Special rule for the target rebuild_cache
+rebuild_cache/fast: rebuild_cache
+
+.PHONY : rebuild_cache/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -123,6 +123,19 @@ find-class-decls/fast:
 	$(MAKE) -f CMakeFiles/find-class-decls.dir/build.make CMakeFiles/find-class-decls.dir/build
 .PHONY : find-class-decls/fast
 
+#=============================================================================
+# Target rules for targets named tooling-sample
+
+# Build rule for target.
+tooling-sample: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 tooling-sample
+.PHONY : tooling-sample
+
+# fast build rule for target.
+tooling-sample/fast:
+	$(MAKE) -f CMakeFiles/tooling-sample.dir/build.make CMakeFiles/tooling-sample.dir/build
+.PHONY : tooling-sample/fast
+
 FindClassDecls.o: FindClassDecls.cpp.o
 
 .PHONY : FindClassDecls.o
@@ -150,18 +163,49 @@ FindClassDecls.cpp.s:
 	$(MAKE) -f CMakeFiles/find-class-decls.dir/build.make CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.s
 .PHONY : FindClassDecls.cpp.s
 
+ToolingSample.o: ToolingSample.cpp.o
+
+.PHONY : ToolingSample.o
+
+# target to build an object file
+ToolingSample.cpp.o:
+	$(MAKE) -f CMakeFiles/tooling-sample.dir/build.make CMakeFiles/tooling-sample.dir/ToolingSample.cpp.o
+.PHONY : ToolingSample.cpp.o
+
+ToolingSample.i: ToolingSample.cpp.i
+
+.PHONY : ToolingSample.i
+
+# target to preprocess a source file
+ToolingSample.cpp.i:
+	$(MAKE) -f CMakeFiles/tooling-sample.dir/build.make CMakeFiles/tooling-sample.dir/ToolingSample.cpp.i
+.PHONY : ToolingSample.cpp.i
+
+ToolingSample.s: ToolingSample.cpp.s
+
+.PHONY : ToolingSample.s
+
+# target to generate assembly for a file
+ToolingSample.cpp.s:
+	$(MAKE) -f CMakeFiles/tooling-sample.dir/build.make CMakeFiles/tooling-sample.dir/ToolingSample.cpp.s
+.PHONY : ToolingSample.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
-	@echo "... rebuild_cache"
-	@echo "... find-class-decls"
 	@echo "... edit_cache"
+	@echo "... find-class-decls"
+	@echo "... rebuild_cache"
+	@echo "... tooling-sample"
 	@echo "... FindClassDecls.o"
 	@echo "... FindClassDecls.i"
 	@echo "... FindClassDecls.s"
+	@echo "... ToolingSample.o"
+	@echo "... ToolingSample.i"
+	@echo "... ToolingSample.s"
 .PHONY : help
 
 

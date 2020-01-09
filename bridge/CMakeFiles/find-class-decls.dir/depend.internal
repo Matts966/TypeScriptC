@@ -168,6 +168,8 @@ CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o
  /usr/local/include/clang/StaticAnalyzer/Core/AnalyzerOptions.def
  /usr/local/include/clang/StaticAnalyzer/Core/AnalyzerOptions.h
  /usr/local/include/clang/Tooling/ArgumentsAdjusters.h
+ /usr/local/include/clang/Tooling/CommonOptionsParser.h
+ /usr/local/include/clang/Tooling/CompilationDatabase.h
  /usr/local/include/clang/Tooling/Tooling.h
  /usr/local/include/llvm-c/DataTypes.h
  /usr/local/include/llvm-c/Error.h

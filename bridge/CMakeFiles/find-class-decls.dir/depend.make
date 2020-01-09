@@ -167,6 +167,8 @@ CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/S
 CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/StaticAnalyzer/Core/AnalyzerOptions.def
 CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/StaticAnalyzer/Core/AnalyzerOptions.h
 CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/Tooling/ArgumentsAdjusters.h
+CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/Tooling/CommonOptionsParser.h
+CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/Tooling/CompilationDatabase.h
 CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/clang/Tooling/Tooling.h
 CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/llvm-c/DataTypes.h
 CMakeFiles/find-class-decls.dir/FindClassDecls.cpp.o: /usr/local/include/llvm-c/Error.h
