@@ -147,7 +147,7 @@ NumericLiteral ::=
 <MultiLineComment> ::= '/*' InsideMultiLineComment* '*/'
 <InsideMultiLineComment> ::= !( '*/' | '/*' ) (#"." | #"[\n\r]") | MultiLineComment
 <Whitespace> ::= <(#"\s+" | SingleLineComment | MultiLineComment)>
-AccessLevel ::= #"public|private" <ws>
+AccessLevel ::= #"public|private|protected" <ws>
 (*these are all for making the grammer easer to read*)
 
 <ws> ::= Whitespace+
