@@ -1,37 +1,55 @@
 import * as tkernel from "../tkernel"
-import * as mqtt from "./mqtt"
+import * as mqtt from "../mqtt"
 
-const taskA = new class TaskA extends tkernel.Task {
+const taskMqttShell = new class TaskMqttShell extends tkernel.Task {
     protected task() {
-        for (let i = 0; i < 3; i++) {
-            console.log("*** tk_wup_tsk to task_b.")
-            if (taskB.wakeUp() != tkernel.result.ok)
-                console.log(" *** Failed in tk_wup_tsk to task_b");
+        let client = new mqtt.MQTTClient
+        client.host = "test.mosquitto.org"
+        client.port = 1883;
+        client.qos = 1;
+        let result = mqtt.result.success
+        while (true) {
+            console.log("- Push c to connect.")
+            console.log("- Push p to publish a message.")
+            console.log("- Push s to subscribe to a topic.")
+            console.log("- Push w to wait messages.")
+            let line = tkernel.ask_line("- Push k to keep connection.")
+            if (line == "c") {
+                result = client.connect()
+            } else if (line == "p") {
+                let topic = tkernel.ask_line("topic: ")
+                client.topic = topic
+                let message = tkernel.ask_line("message: ")
+                client.message = message
+                result = client.publish()
+            } else if (line == "s") {
+                let topic = tkernel.ask_line("topic: ")
+                client.topic = topic
+                result = client.subscribe()
+            } else if (line == "w") {
+                result = client.wait()
+            } else if (line == "k") {
+                result = client.ping()
+            }
+
+            if (result != mqtt.result.success) {
+                break;
+            }
         }
+        console.log(" *** MQTT shell: error occured.")
+        tkernel.parentTask.wakeUp()
     }
 }()
-console.log("*** task_a created.");
-
-const taskB = new class TaskB extends tkernel.Task {
-    protected task() {
-        console.log("*** task_b started.")
-        while (true) {
-            console.log("*** task_b is Waiting")
-            this.sleep(tkernel.waitType.forever)
-            console.log("*** task_b was Triggered")
-        }
-    }
-}(2)
-console.log("*** task_b created.")
-
-if (taskB.start(0) != tkernel.result.ok) {
-    console.log(" *** Failed in start of task_b.")
-    process.exit(1)
-}
-console.log("*** task_b started.")
+console.log("*** task_mqtt_shell created.");
 
 while (true) {
-    tkernel.ask("Push any key to start task_a. ")
-    console.log()
-    taskA.start(0)
+    taskMqttShell.start(0)
+    tkernel.sleep(tkernel.waitType.forever)
+    console.log(" *** MQTT shell disconnected... Reseted context.")
 }
+
+
+// Network initialization
+// NetDrv(0, NULL);
+// so_main(0, NULL);
+// net_conf(NET_CONF_EMULATOR, NET_CONF_DHCP);

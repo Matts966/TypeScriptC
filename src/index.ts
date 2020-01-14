@@ -26,7 +26,7 @@ const main = () => {
 
     visitor.visitProgram(program)
 
-    visitor.printImports()
+    visitor.printIncludes()
 
     visitor.printTasks()
 

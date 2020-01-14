@@ -12,7 +12,14 @@ export abstract class Task {
     }
 }
 
+export const parentTask = new class TaskA extends Task {
+    protected task() { }
+}
+
+export const sleep = (t : timeOut) => { return result.ok }
+
 export const ask = (_ : string) => { }
+export const ask_line = (_ : string) => { return ""; }
 
 export const enum result {
     ok = "ok",

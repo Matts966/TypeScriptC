@@ -1,9 +1,10 @@
 import ts from 'typescript'
 import * as diag from '../diagnostics'
+import { visitor } from './visitor'
 
 let tKernelImported = false
 
-export const isImportTKernel = (i : ts.ImportDeclaration) => {
+const isImportKnown = (i : ts.ImportDeclaration) => {
     const ic = i.importClause
     if (!ic) return
     let namedImport = ic.namedBindings as ts.NamespaceImport
@@ -14,16 +15,20 @@ export const isImportTKernel = (i : ts.ImportDeclaration) => {
     return true
 }
 
-export const handleImport = (node : ts.Node) => {
+export const handleImport = (node : ts.Node, visitor : visitor) => {
     if (ts.isImportDeclaration(node)) {
-        if (!isImportTKernel(node)) {
-            diag.emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`')
+        if (!isImportKnown(node)) {
+            diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
+                by `import * as tkernel from "./tkernel"` \
+                or `import * as mqtt from "./mqtt"`')
             process.exit(1)
         }
         return true
     }
     if (!tKernelImported) {
-        diag.emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`')
+        diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
+            by `import * as tkernel from "./tkernel"` \
+            or `import * as mqtt from "./mqtt"`')
         process.exit(1)
     }
 }

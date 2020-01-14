@@ -28,7 +28,7 @@ var main = function () {
     var checker = program.getTypeChecker();
     var visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
     visitor.visitProgram(program);
-    visitor.printImports();
+    visitor.printIncludes();
     visitor.printTasks();
     console.log("EXPORT INT usermain( void ) {");
     if (visitor.tasks.length != 0) {

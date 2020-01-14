@@ -13,7 +13,7 @@ exports.__esModule = true;
 var typescript_1 = __importDefault(require("typescript"));
 var diag = __importStar(require("../diagnostics"));
 var tKernelImported = false;
-exports.isImportTKernel = function (i) {
+var isImportKnown = function (i) {
     var ic = i.importClause;
     if (!ic)
         return;
@@ -24,16 +24,20 @@ exports.isImportTKernel = function (i) {
     tKernelImported = true;
     return true;
 };
-exports.handleImport = function (node) {
+exports.handleImport = function (node, visitor) {
     if (typescript_1["default"].isImportDeclaration(node)) {
-        if (!exports.isImportTKernel(node)) {
-            diag.emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`');
+        if (!isImportKnown(node)) {
+            diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
+                by `import * as tkernel from "./tkernel"` \
+                or `import * as mqtt from "./mqtt"`');
             process.exit(1);
         }
         return true;
     }
     if (!tKernelImported) {
-        diag.emitDiagnostic(node, 'please import only tkernel by `import * as tkernel from "./tkernel"`');
+        diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
+            by `import * as tkernel from "./tkernel"` \
+            or `import * as mqtt from "./mqtt"`');
         process.exit(1);
     }
 };
