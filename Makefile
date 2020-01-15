@@ -1,3 +1,5 @@
+test-mqtt: fmt
+	./test.sh ./tests/mqtt_shell.ts
 test: build
 	./test.sh
 run: src/index.ts build
@@ -15,7 +17,7 @@ install-pre-commit-hook:
 	sudo ln -sf $(PWD)/config/hooks/pre-commit $(PWD)/.git/hooks/pre-commit
 t: build
 	./test.sh ./tests/sample_usermain.ts
-test-sample: build
+test-sample: fmt
 	./test.sh ./sample_usermain.ts
 
-.PHONY: run-node build run clean fmt install-pre-commit-hook test t
+.PHONY: run-node build run clean fmt install-pre-commit-hook test t test-mqtt
