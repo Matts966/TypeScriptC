@@ -9,21 +9,21 @@ export class visitor {
     printer : p.Printer
     checker : ts.TypeChecker
     tasks : ts.MethodDeclaration[]
-    private imports : string[]
+    private includes : string[]
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
         this.printer = printer
         this.checker = checker
         this.tasks = []
-        this.imports = []
+        this.includes = []
     }
 
     visit = (node : ts.Node) => {
         if (node.kind == ts.SyntaxKind.EndOfFileToken) {
             return
         }
-        if (imports.handleImport(node)) {
-            this.imports.push("tkernel")
+        if (ts.isImportDeclaration(node)) {
+            this.includes = this.includes.concat(imports.importsToIncludes(node))
             return
         }
         if (ts.isClassDeclaration(node)) {
@@ -112,7 +112,7 @@ export class visitor {
     }
 
     printImports = () => {
-        if (this.imports.length == 0) {
+        if (this.includes.length == 0) {
             return
         }
 
@@ -120,7 +120,7 @@ export class visitor {
 
         this.printer = new p.StdOutPrinter
 
-        imports.importsToIncludes(this.imports).forEach((include) => {
+        this.includes.forEach((include) => {
             this.printer.printLn(include)
         })
         this.printer.printLn("")

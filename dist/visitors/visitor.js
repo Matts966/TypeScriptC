@@ -30,8 +30,8 @@ var visitor = /** @class */ (function () {
             if (node.kind == typescript_1["default"].SyntaxKind.EndOfFileToken) {
                 return;
             }
-            if (imports.handleImport(node)) {
-                _this.imports.push("tkernel");
+            if (typescript_1["default"].isImportDeclaration(node)) {
+                _this.includes = _this.includes.concat(imports.importsToIncludes(node));
                 return;
             }
             if (typescript_1["default"].isClassDeclaration(node)) {
@@ -109,12 +109,12 @@ var visitor = /** @class */ (function () {
             _this.printer = tmpPrinter;
         };
         this.printImports = function () {
-            if (_this.imports.length == 0) {
+            if (_this.includes.length == 0) {
                 return;
             }
             var tmpPrinter = _this.printer;
             _this.printer = new p.StdOutPrinter;
-            imports.importsToIncludes(_this.imports).forEach(function (include) {
+            _this.includes.forEach(function (include) {
                 _this.printer.printLn(include);
             });
             _this.printer.printLn("");
@@ -123,7 +123,7 @@ var visitor = /** @class */ (function () {
         this.printer = printer;
         this.checker = checker;
         this.tasks = [];
-        this.imports = [];
+        this.includes = [];
     }
     return visitor;
 }());

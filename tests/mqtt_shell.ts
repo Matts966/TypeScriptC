@@ -1,5 +1,5 @@
 import * as tkernel from "../tkernel"
-import * as mqtt from "./mqtt"
+import * as mqtt from "../mqtt"
 
 const taskA = new class TaskA extends tkernel.Task {
     protected task() {
