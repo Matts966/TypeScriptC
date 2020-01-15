@@ -77,13 +77,23 @@ var visitor = /** @class */ (function () {
             }
             var tmpPrinter = _this.printer;
             _this.printer = new p.StdOutPrinter;
-            var taskNames = _this.tasks.map(function (m) {
+            _this.taskNames = _this.tasks.map(function (m) {
                 return util.getTypeString(m.parent, _this.checker);
             });
-            _this.printer.printLn("typedef enum { " + taskNames.map(function (name) { return name.toUpperCase() + ", "; }).join('') + "OBJ_KIND_NUM } OBJ_KIND;");
+            _this.printer.printLn("typedef enum { "
+                + _this.taskNames.map(function (name, index) {
+                    return name.toUpperCase() + ", "
+                        + (_this.useMessageBox[index] ? "MBUF_" + name.toUpperCase() + ", " : "");
+                }).join('')
+                + "OBJ_KIND_NUM } OBJ_KIND;");
             _this.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];");
             _this.printer.printLn("");
-            _this.tasks.forEach(function (m) {
+            _this.tasks.forEach(function (m, index) {
+                _this.nowProcessingTaskIndex = index;
+                // Define buffer for the message buffer
+                if (_this.useMessageBox[index]) {
+                    _this.printer.printLn("UB __" + _this.taskNames[index] + "_buffer;");
+                }
                 var taskSig = "EXPORT void " + util.getTypeString(m.parent, _this.checker) + "(INT stacd, VP exinf)";
                 _this.printer.printLn(taskSig + ';');
                 _this.printer.print(taskSig + " ");
@@ -123,7 +133,10 @@ var visitor = /** @class */ (function () {
         this.printer = printer;
         this.checker = checker;
         this.tasks = [];
+        this.taskNames = [];
+        this.useMessageBox = [];
         this.includes = [];
+        this.nowProcessingTaskIndex = 0;
     }
     return visitor;
 }());

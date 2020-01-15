@@ -31,6 +31,9 @@ var main = function () {
     visitor.printImports();
     visitor.printTasks();
     console.log("EXPORT INT usermain( void ) {");
+    if (visitor.useMessageBox.some(function (e) { return e; })) {
+        console.log("\tT_CMBF cmbf = { NULL, TA_TFIFO, 256, 5 };");
+    }
     if (visitor.tasks.length != 0) {
         console.log("\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
     }

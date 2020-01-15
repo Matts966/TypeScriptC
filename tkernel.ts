@@ -2,13 +2,17 @@ export abstract class Task {
     protected abstract task(info : number) : void
     private stackSize : number = 1024
     private priority : number = 1
+    private messageBoxSize : number = 0
     static readonly id : number
     public start(info : number) { return result.ok }
     protected sleep(t : timeOut) { return result.ok }
     public wakeUp() { return result.ok }
-    constructor(priority?: number, stackSize?: number) {
+    protected receive(t : timeOut) { return "" }
+    public send(t : timeOut) { return result.ok }
+    constructor(priority?: number, messageBoxSize?: number, stackSize?: number) {
         if (priority) this.priority = priority
         if (stackSize) this.stackSize = stackSize
+        if (messageBoxSize) this.messageBoxSize = messageBoxSize
     }
 }
 

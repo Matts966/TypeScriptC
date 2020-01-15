@@ -1,7 +1,9 @@
+test: fmt
+	./test.sh
+test-message: fmt
+	./test.sh ./tests/message_passing.ts
 test-mqtt: fmt
 	./test.sh ./tests/mqtt_shell.ts
-test: build
-	./test.sh
 run: src/index.ts build
 	node ./dist/index.js sample_usermain.ts
 build: tsconfig.json
@@ -12,7 +14,7 @@ clean: dist
 	rm dist/*
 	rm *.js
 fmt: build
-	npx tsfmt -r src/*.ts src/**/*.ts
+	npx tsfmt -r src/*.ts src/**/*.ts tests/*.ts
 install-pre-commit-hook:
 	sudo ln -sf $(PWD)/config/hooks/pre-commit $(PWD)/.git/hooks/pre-commit
 t: build
