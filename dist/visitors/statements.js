@@ -51,17 +51,26 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     continue;
                 }
             }
-            // TODO: merge handling with ClassExpression by makeing function
             if (typescript_1.default.isIdentifier(expr.expression)) {
                 if (isTask(expr.expression, v)) {
                     handleTaskInitialization(expr, expr.expression, v);
                     continue;
                 }
             }
+            if (isMQTTClient(expr.expression, v)) {
+                handleMQTTClientDeclaration(d, v);
+                continue;
+            }
         }
-        diag.emitDiagnostic(d, "don't know how to handle this initializer");
-        process.exit(1);
     }
+};
+const isMQTTClient = (location, v) => {
+    const sym = v.checker.getSymbolAtLocation(location);
+    const type = v.checker.getDeclaredTypeOfSymbol(sym);
+    if (v.checker.typeToString(type) != "MQTTClient") {
+        return false;
+    }
+    return true;
 };
 const isTask = (location, v) => {
     if (!location)
@@ -144,6 +153,8 @@ const handleTaskInitialization = (newExpr, taskIdent, v) => {
     else {
         v.useMessageBox.push(false);
     }
+};
+const handleMQTTClientDeclaration = (d, v) => {
 };
 exports.visitStatement = (statement, v) => {
     if (typescript_1.default.isExpressionStatement(statement)) {

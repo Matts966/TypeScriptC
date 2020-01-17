@@ -52,11 +52,20 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     continue
                 }
             }
+            if (isMQTTClient(expr.expression, v)) {
+                handleMQTTClientDeclaration(d, v)
+                continue
+            }
         }
-
-        diag.emitDiagnostic(d, "don't know how to handle this initializer")
-        process.exit(1)
     }
+}
+const isMQTTClient = (location : ts.Node, v : visitor) => {
+    const sym = v.checker.getSymbolAtLocation(location)
+    const type = v.checker.getDeclaredTypeOfSymbol(sym!)
+    if (v.checker.typeToString(type) != "MQTTClient") {
+        return false;
+    }
+    return true
 }
 const isTask = (location : ts.Node | undefined, v : visitor) => {
     if (!location) return false
@@ -134,6 +143,9 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
     } else {
         v.useMessageBox.push(false)
     }
+}
+const handleMQTTClientDeclaration = (d : ts.VariableDeclaration, v : visitor) => {
+
 }
 export const visitStatement = (statement : ts.Statement, v : visitor) => {
     if (ts.isExpressionStatement(statement)) {
