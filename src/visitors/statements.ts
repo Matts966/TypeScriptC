@@ -1,4 +1,4 @@
-import ts from 'typescript'
+import ts, { Expression } from 'typescript'
 import * as expressions from './expressions'
 import * as diag from '../diagnostics'
 import * as util from '../utilities'
@@ -36,157 +36,103 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
 
         if (ts.isNewExpression(expr)) {
             if (ts.isClassExpression(expr.expression)) {
-                const sym = v.checker.getSymbolAtLocation(expr.expression.name!)
-                const type = v.checker.getDeclaredTypeOfSymbol(sym!)
-                // console.log(checker.typeToString(type))
-                // console.log(type.isClass())
-                const onlyTaskAllowedMessage = "classes that extends only Task are allowed"
-                const baseTypes = type.getBaseTypes()
-                if (!baseTypes || baseTypes.length != 1) {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage)
-                    process.exit(1)
-                }
-                if (v.checker.typeToString(baseTypes![0]) != "Task") {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage)
-                    process.exit(1)
-                }
-                expressions.handleClassMembers(expr.expression.members, v)
-                let messageBoxCount = 0
-                if (!expr.arguments) {
-                    v.printer.printLn("t_ctsk.stksz = 1024;")
-                    v.printer.printLn("t_ctsk.itskpri = 1;")
-                } else {
-                    let argNum = 0
-                    for (const arg of expr.arguments) {
-                        if (argNum == 0) {
-                            v.printer.print("t_ctsk.itskpri = ")
-                            expressions.visitExpression(arg, v)
-                            v.printer.printWithoutSpace(";\n")
-                        } else if (argNum == 1) {
-                            if (+arg.getText() == 0) continue
-                            if (+arg.getText() > 0) {
-                                messageBoxCount = +arg.getText()
-                                continue
-                            }
-                            diag.emitDiagnostic(arg, "mailbox count should be zero or positive")
-                            process.exit(1)
-                        } else if (argNum == 2) {
-                            v.printer.print("t_ctsk.stksz = ")
-                            expressions.visitExpression(arg, v)
-                            v.printer.printLn(";")
-                        } else {
-                            diag.emitDiagnostic(expr.expression, "invalid arguments")
-                            process.exit(1)
-                        }
-                        ++argNum
+                if (isTask(expr.expression.name, v)) {
+                    expressions.handleClassMembers(expr.expression.members, v)
+                    if (!expr.expression.name) {
+                        diag.emitDiagnostic(expr.expression, "task should have name")
+                        process.exit(1)
                     }
-                    if (argNum == 0) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;")
-                        v.printer.printLn("t_ctsk.itskpri = 1;")
-                    }
-                    if (argNum == 1) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;")
-                    }
+                    handleTaskInitialization(expr, expr.expression.name!, v)
+                    continue
                 }
-                const taskIdent = expr.expression.name
-                if (!taskIdent) {
-                    diag.emitDiagnostic(expr.expression, "invalid task")
-                    process.exit(1)
-                }
-                const taskName = util.camelToSnake(taskIdent!.text)
-                v.printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");")
-                v.printer.printLn("t_ctsk.task = " + taskName + ";")
-                v.printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {")
-                v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");")
-                v.printer.printLn("return 1;")
-                v.printer.unindent().printLn("}")
-                v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
-                if (messageBoxCount > 0) {
-                    v.useMessageBox.push(true)
-                    v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";")
-                    v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {")
-                    v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");")
-                    v.printer.printLn("return 1;")
-                    v.printer.unindent().printLn("}")
-                    v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;")
-                } else {
-                    v.useMessageBox.push(false)
-                }
-                continue
             }
-            // TODO: merge handling with ClassExpression by makeing function
             if (ts.isIdentifier(expr.expression)) {
-                const sym = v.checker.getSymbolAtLocation(expr.expression)
-                const type = v.checker.getDeclaredTypeOfSymbol(sym!)
-                // console.log(checker.typeToString(type))
-                // console.log(type.isClass())
-                const onlyTaskAllowedMessage = "classes that extends only Task are allowed"
-                const baseTypes = type.getBaseTypes()
-                if (!baseTypes || baseTypes.length != 1) {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage)
-                    process.exit(1)
+                if (isTask(expr.expression, v)) {
+                    handleTaskInitialization(expr, expr.expression, v)
+                    continue
                 }
-                if (v.checker.typeToString(baseTypes![0]) != "Task") {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage)
-                    process.exit(1)
-                }
-                if (!expr.arguments) {
-                    v.printer.printLn("t_ctsk.stksz = 1024;")
-                    v.printer.printLn("t_ctsk.itskpri = 1;")
-                } else {
-                    let argNum = 0
-                    for (const arg of expr.arguments) {
-                        if (argNum == 0) {
-                            v.printer.print("t_ctsk.itskpri = ")
-                            expressions.visitExpression(arg, v)
-                            v.printer.printLn(";")
-                        } else if (argNum == 1) {
-                            v.printer.print("t_ctsk.stksz = ")
-                            expressions.visitExpression(arg, v)
-                            v.printer.printLn(";")
-                        } else {
-                            diag.emitDiagnostic(expr.expression, "invalid arguments")
-                            process.exit(1)
-                        }
-                        ++argNum
-                    }
-                    if (argNum == 0) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;")
-                        v.printer.printLn("t_ctsk.itskpri = 1;")
-                    }
-                    if (argNum == 1) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;")
-                    }
-                }
-                const taskIdent = expr.expression
-                if (!taskIdent) {
-                    diag.emitDiagnostic(expr.expression, "invalid task")
-                    process.exit(1)
-                }
-                const taskName = util.camelToSnake(taskIdent!.text)
-                v.printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");")
-                v.printer.printLn("t_ctsk.task = " + taskName + ";")
-                v.printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {")
-                v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");")
-                v.printer.printLn("return 1;")
-                v.printer.unindent().printLn("}")
-                v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
-                continue
             }
         }
 
-        diag.emitDiagnostic(d, "don't know how to handle this initializer " + d.initializer)
+        diag.emitDiagnostic(d, "don't know how to handle this initializer")
         process.exit(1)
+    }
+}
+const isTask = (location : ts.Node | undefined, v : visitor) => {
+    if (!location) return false
+    const sym = v.checker.getSymbolAtLocation(location)
+    const type = v.checker.getDeclaredTypeOfSymbol(sym!)
+    const baseTypes = type.getBaseTypes()
+    if (!baseTypes || baseTypes.length != 1) {
+        return false;
+    }
+    if (v.checker.typeToString(baseTypes![0]) != "Task") {
+        return false;
+    }
+    return true
+}
+const handleTaskInitialization = (newExpr : ts.NewExpression,
+    taskIdent : ts.Identifier, v : visitor) => {
+    let messageBoxCount = 0
+    if (!newExpr.arguments) {
+        v.printer.printLn("t_ctsk.stksz = 1024;")
+        v.printer.printLn("t_ctsk.itskpri = 1;")
+    } else {
+        let argNum = 0
+        for (const arg of newExpr.arguments) {
+            if (argNum == 0) {
+                v.printer.print("t_ctsk.itskpri = ")
+                expressions.visitExpression(arg, v)
+                v.printer.printWithoutSpace(";\n")
+            } else if (argNum == 1) {
+                if (+arg.getText() == 0) continue
+                if (+arg.getText() > 0) {
+                    messageBoxCount = +arg.getText()
+                    continue
+                }
+                diag.emitDiagnostic(arg, "mailbox count should be zero or positive")
+                process.exit(1)
+            } else if (argNum == 2) {
+                v.printer.print("t_ctsk.stksz = ")
+                expressions.visitExpression(arg, v)
+                v.printer.printLn(";")
+            } else {
+                diag.emitDiagnostic(newExpr.expression, "invalid arguments")
+                process.exit(1)
+            }
+            ++argNum
+        }
+        if (argNum == 0) {
+            v.printer.printLn("t_ctsk.stksz = 1024;")
+            v.printer.printLn("t_ctsk.itskpri = 1;")
+        }
+        if (argNum == 1) {
+            v.printer.printLn("t_ctsk.stksz = 1024;")
+        }
+    }
 
-        // const sym = checker.getSymbolAtLocation(d.name)
-        // const type = checker.getDeclaredTypeOfSymbol(sym!)
-        // console.log(checker.typeToString(type))
-
-        // const sym = checker.getSymbolAtLocation(d)
-        // const type = checker.getDeclaredTypeOfSymbol(sym!)
-
-        // const type = checker.getTypeAtLocation(d) as ts.TypeReference;
-        // const typeArg = type.typeArguments![0];
+    if (!taskIdent) {
+        diag.emitDiagnostic(newExpr.expression, "invalid task")
+        process.exit(1)
+    }
+    const taskName = util.camelToSnake(taskIdent!.text)
+    v.printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");")
+    v.printer.printLn("t_ctsk.task = " + taskName + ";")
+    v.printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {")
+    v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");")
+    v.printer.printLn("return 1;")
+    v.printer.unindent().printLn("}")
+    v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
+    if (messageBoxCount > 0) {
+        v.useMessageBox.push(true)
+        v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";")
+        v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {")
+        v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");")
+        v.printer.printLn("return 1;")
+        v.printer.unindent().printLn("}")
+        v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;")
+    } else {
+        v.useMessageBox.push(false)
     }
 }
 export const visitStatement = (statement : ts.Statement, v : visitor) => {

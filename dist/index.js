@@ -6,39 +6,42 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-exports.__esModule = true;
-var c = __importStar(require("./c"));
-var diag = __importStar(require("./diagnostics"));
-var visitors = __importStar(require("./visitors"));
-var p = __importStar(require("./printer"));
-var util = __importStar(require("./utilities"));
-var main = function () {
-    var program = util.getProgramFromArgV();
+Object.defineProperty(exports, "__esModule", { value: true });
+const c = __importStar(require("./c"));
+const diag = __importStar(require("./diagnostics"));
+const visitors = __importStar(require("./visitors"));
+const p = __importStar(require("./printer"));
+const util = __importStar(require("./utilities"));
+const main = () => {
+    const program = util.getProgramFromArgV();
     // For future use
-    var cnp = new c.Program();
+    const cnp = new c.Program();
     cnp.includes.push();
     // Apply type check
-    var allDiagnostics = util.getPreEmitDiagnostics(program)
+    let allDiagnostics = util.getPreEmitDiagnostics(program)
         .concat();
     if (allDiagnostics.length > 0) {
         diag.emitDiagnostics(allDiagnostics);
         process.exit(1);
     }
     // Type Checker initialization
-    var checker = program.getTypeChecker();
-    var visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
+    let checker = program.getTypeChecker();
+    const visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
     visitor.visitProgram(program);
     visitor.printIncludes();
     visitor.printTasks();
-    console.log("EXPORT INT usermain( void ) {");
-    if (visitor.useMessageBox.some(function (e) { return e; })) {
-        console.log("\tT_CMBF cmbf = { NULL, TA_TFIFO, 256, 5 };");
+    console.log(`EXPORT INT usermain( void ) {`);
+    if (visitor.useMessageBox.some((e) => e)) {
+        console.log(`\tT_CMBF cmbf = { NULL, TA_TFIFO, 256, 5 };`);
     }
     if (visitor.tasks.length != 0) {
-        console.log("\tT_CTSK t_ctsk;\n\tID objid;\n\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;\n");
+        console.log(`\tT_CTSK t_ctsk;
+\tID objid;
+\tt_ctsk.tskatr = TA_HLNG | TA_DSNAME;
+`);
     }
     visitor.printer.outputBuffer();
-    console.log("}");
+    console.log(`}`);
 };
 main();
 //# sourceMappingURL=index.js.map

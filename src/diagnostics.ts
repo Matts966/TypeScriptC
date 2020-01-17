@@ -26,7 +26,6 @@ export class Diagnostic implements ts.Diagnostic {
 }
 export const emitDiagnostic = (node : ts.Node, messageText : string) => {
     emitDiagnostics([new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)])
-    process.exit(1)
 }
 export const getDiagnostic = (node : ts.Node, messageText : string) => {
     return new Diagnostic(ts.DiagnosticCategory.Error, node.getSourceFile(), node.getStart(), node.getWidth(), messageText)

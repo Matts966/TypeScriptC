@@ -9,213 +9,156 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-exports.__esModule = true;
-var typescript_1 = __importDefault(require("typescript"));
-var expressions = __importStar(require("./expressions"));
-var diag = __importStar(require("../diagnostics"));
-var util = __importStar(require("../utilities"));
-exports.isStatement = function (node) {
-    if (typescript_1["default"].isExpressionStatement(node) || typescript_1["default"].isIfStatement(node) || typescript_1["default"].isWhileStatement(node) || typescript_1["default"].isForStatement || typescript_1["default"].isVariableStatement(node) || typescript_1["default"].isReturnStatement(node) || typescript_1["default"].isBlock(node)) {
+Object.defineProperty(exports, "__esModule", { value: true });
+const typescript_1 = __importDefault(require("typescript"));
+const expressions = __importStar(require("./expressions"));
+const diag = __importStar(require("../diagnostics"));
+const util = __importStar(require("../utilities"));
+exports.isStatement = (node) => {
+    if (typescript_1.default.isExpressionStatement(node) || typescript_1.default.isIfStatement(node) || typescript_1.default.isWhileStatement(node) || typescript_1.default.isForStatement || typescript_1.default.isVariableStatement(node) || typescript_1.default.isReturnStatement(node) || typescript_1.default.isBlock(node)) {
         return true;
     }
     return false;
 };
-exports.visitExpressionStatement = function (expressionStatement, v) {
+exports.visitExpressionStatement = (expressionStatement, v) => {
     expressions.visitExpression(expressionStatement.expression, v);
     v.printer.printWithoutSpace(";\n");
 };
-exports.visitVariableStatement = function (variableStatement, v) {
+exports.visitVariableStatement = (variableStatement, v) => {
     exports.visitVariableDeclarationList(variableStatement.declarationList, v);
 };
-exports.visitVariableDeclarationList = function (variableDeclarationList, v) {
-    for (var _i = 0, _a = variableDeclarationList.declarations; _i < _a.length; _i++) {
-        var d = _a[_i];
+exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
+    for (const d of variableDeclarationList.declarations) {
         if (!d.initializer) {
             diag.emitDiagnostic(d, "lack of initialization");
             process.exit(1);
         }
-        var expr = d.initializer;
-        if (typescript_1["default"].isNumericLiteral(expr)) {
+        const expr = d.initializer;
+        if (typescript_1.default.isNumericLiteral(expr)) {
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText());
             return;
         }
-        if (typescript_1["default"].isNewExpression(expr)) {
-            if (typescript_1["default"].isClassExpression(expr.expression)) {
-                var sym = v.checker.getSymbolAtLocation(expr.expression.name);
-                var type = v.checker.getDeclaredTypeOfSymbol(sym);
-                // console.log(checker.typeToString(type))
-                // console.log(type.isClass())
-                var onlyTaskAllowedMessage = "classes that extends only Task are allowed";
-                var baseTypes = type.getBaseTypes();
-                if (!baseTypes || baseTypes.length != 1) {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                if (v.checker.typeToString(baseTypes[0]) != "Task") {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                expressions.handleClassMembers(expr.expression.members, v);
-                var messageBoxCount = 0;
-                if (!expr.arguments) {
-                    v.printer.printLn("t_ctsk.stksz = 1024;");
-                    v.printer.printLn("t_ctsk.itskpri = 1;");
-                }
-                else {
-                    var argNum = 0;
-                    for (var _b = 0, _c = expr.arguments; _b < _c.length; _b++) {
-                        var arg = _c[_b];
-                        if (argNum == 0) {
-                            v.printer.print("t_ctsk.itskpri = ");
-                            expressions.visitExpression(arg, v);
-                            v.printer.printWithoutSpace(";\n");
-                        }
-                        else if (argNum == 1) {
-                            if (+arg.getText() == 0)
-                                continue;
-                            if (+arg.getText() > 0) {
-                                messageBoxCount = +arg.getText();
-                                continue;
-                            }
-                            diag.emitDiagnostic(arg, "mailbox count should be zero or positive");
-                            process.exit(1);
-                        }
-                        else if (argNum == 2) {
-                            v.printer.print("t_ctsk.stksz = ");
-                            expressions.visitExpression(arg, v);
-                            v.printer.printLn(";");
-                        }
-                        else {
-                            diag.emitDiagnostic(expr.expression, "invalid arguments");
-                            process.exit(1);
-                        }
-                        ++argNum;
+        if (typescript_1.default.isNewExpression(expr)) {
+            if (typescript_1.default.isClassExpression(expr.expression)) {
+                if (isTask(expr.expression.name, v)) {
+                    expressions.handleClassMembers(expr.expression.members, v);
+                    if (!expr.expression.name) {
+                        diag.emitDiagnostic(expr.expression, "task should have name");
+                        process.exit(1);
                     }
-                    if (argNum == 0) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;");
-                        v.printer.printLn("t_ctsk.itskpri = 1;");
-                    }
-                    if (argNum == 1) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;");
-                    }
+                    handleTaskInitialization(expr, expr.expression.name, v);
+                    continue;
                 }
-                var taskIdent = expr.expression.name;
-                if (!taskIdent) {
-                    diag.emitDiagnostic(expr.expression, "invalid task");
-                    process.exit(1);
-                }
-                var taskName = util.camelToSnake(taskIdent.text);
-                v.printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");");
-                v.printer.printLn("t_ctsk.task = " + taskName + ";");
-                v.printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
-                v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
-                v.printer.printLn("return 1;");
-                v.printer.unindent().printLn("}");
-                v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
-                if (messageBoxCount > 0) {
-                    v.useMessageBox.push(true);
-                    v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";");
-                    v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {");
-                    v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");");
-                    v.printer.printLn("return 1;");
-                    v.printer.unindent().printLn("}");
-                    v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;");
-                }
-                else {
-                    v.useMessageBox.push(false);
-                }
-                continue;
             }
             // TODO: merge handling with ClassExpression by makeing function
-            if (typescript_1["default"].isIdentifier(expr.expression)) {
-                var sym = v.checker.getSymbolAtLocation(expr.expression);
-                var type = v.checker.getDeclaredTypeOfSymbol(sym);
-                // console.log(checker.typeToString(type))
-                // console.log(type.isClass())
-                var onlyTaskAllowedMessage = "classes that extends only Task are allowed";
-                var baseTypes = type.getBaseTypes();
-                if (!baseTypes || baseTypes.length != 1) {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
+            if (typescript_1.default.isIdentifier(expr.expression)) {
+                if (isTask(expr.expression, v)) {
+                    handleTaskInitialization(expr, expr.expression, v);
+                    continue;
                 }
-                if (v.checker.typeToString(baseTypes[0]) != "Task") {
-                    diag.emitDiagnostic(d, onlyTaskAllowedMessage);
-                    process.exit(1);
-                }
-                if (!expr.arguments) {
-                    v.printer.printLn("t_ctsk.stksz = 1024;");
-                    v.printer.printLn("t_ctsk.itskpri = 1;");
-                }
-                else {
-                    var argNum = 0;
-                    for (var _d = 0, _e = expr.arguments; _d < _e.length; _d++) {
-                        var arg = _e[_d];
-                        if (argNum == 0) {
-                            v.printer.print("t_ctsk.itskpri = ");
-                            expressions.visitExpression(arg, v);
-                            v.printer.printLn(";");
-                        }
-                        else if (argNum == 1) {
-                            v.printer.print("t_ctsk.stksz = ");
-                            expressions.visitExpression(arg, v);
-                            v.printer.printLn(";");
-                        }
-                        else {
-                            diag.emitDiagnostic(expr.expression, "invalid arguments");
-                            process.exit(1);
-                        }
-                        ++argNum;
-                    }
-                    if (argNum == 0) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;");
-                        v.printer.printLn("t_ctsk.itskpri = 1;");
-                    }
-                    if (argNum == 1) {
-                        v.printer.printLn("t_ctsk.stksz = 1024;");
-                    }
-                }
-                var taskIdent = expr.expression;
-                if (!taskIdent) {
-                    diag.emitDiagnostic(expr.expression, "invalid task");
-                    process.exit(1);
-                }
-                var taskName = util.camelToSnake(taskIdent.text);
-                v.printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");");
-                v.printer.printLn("t_ctsk.task = " + taskName + ";");
-                v.printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
-                v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
-                v.printer.printLn("return 1;");
-                v.printer.unindent().printLn("}");
-                v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
-                continue;
             }
         }
-        diag.emitDiagnostic(d, "don't know how to handle this initializer " + d.initializer);
+        diag.emitDiagnostic(d, "don't know how to handle this initializer");
         process.exit(1);
-        // const sym = checker.getSymbolAtLocation(d.name)
-        // const type = checker.getDeclaredTypeOfSymbol(sym!)
-        // console.log(checker.typeToString(type))
-        // const sym = checker.getSymbolAtLocation(d)
-        // const type = checker.getDeclaredTypeOfSymbol(sym!)
-        // const type = checker.getTypeAtLocation(d) as ts.TypeReference;
-        // const typeArg = type.typeArguments![0];
     }
 };
-exports.visitStatement = function (statement, v) {
-    if (typescript_1["default"].isExpressionStatement(statement)) {
+const isTask = (location, v) => {
+    if (!location)
+        return false;
+    const sym = v.checker.getSymbolAtLocation(location);
+    const type = v.checker.getDeclaredTypeOfSymbol(sym);
+    const baseTypes = type.getBaseTypes();
+    if (!baseTypes || baseTypes.length != 1) {
+        return false;
+    }
+    if (v.checker.typeToString(baseTypes[0]) != "Task") {
+        return false;
+    }
+    return true;
+};
+const handleTaskInitialization = (newExpr, taskIdent, v) => {
+    let messageBoxCount = 0;
+    if (!newExpr.arguments) {
+        v.printer.printLn("t_ctsk.stksz = 1024;");
+        v.printer.printLn("t_ctsk.itskpri = 1;");
+    }
+    else {
+        let argNum = 0;
+        for (const arg of newExpr.arguments) {
+            if (argNum == 0) {
+                v.printer.print("t_ctsk.itskpri = ");
+                expressions.visitExpression(arg, v);
+                v.printer.printWithoutSpace(";\n");
+            }
+            else if (argNum == 1) {
+                if (+arg.getText() == 0)
+                    continue;
+                if (+arg.getText() > 0) {
+                    messageBoxCount = +arg.getText();
+                    continue;
+                }
+                diag.emitDiagnostic(arg, "mailbox count should be zero or positive");
+                process.exit(1);
+            }
+            else if (argNum == 2) {
+                v.printer.print("t_ctsk.stksz = ");
+                expressions.visitExpression(arg, v);
+                v.printer.printLn(";");
+            }
+            else {
+                diag.emitDiagnostic(newExpr.expression, "invalid arguments");
+                process.exit(1);
+            }
+            ++argNum;
+        }
+        if (argNum == 0) {
+            v.printer.printLn("t_ctsk.stksz = 1024;");
+            v.printer.printLn("t_ctsk.itskpri = 1;");
+        }
+        if (argNum == 1) {
+            v.printer.printLn("t_ctsk.stksz = 1024;");
+        }
+    }
+    if (!taskIdent) {
+        diag.emitDiagnostic(newExpr.expression, "invalid task");
+        process.exit(1);
+    }
+    const taskName = util.camelToSnake(taskIdent.text);
+    v.printer.printLn("STRCPY( (char *)t_ctsk.dsname, \"" + taskName + "\");");
+    v.printer.printLn("t_ctsk.task = " + taskName + ";");
+    v.printer.printLn("if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {");
+    v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
+    v.printer.printLn("return 1;");
+    v.printer.unindent().printLn("}");
+    v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
+    if (messageBoxCount > 0) {
+        v.useMessageBox.push(true);
+        v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";");
+        v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {");
+        v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");");
+        v.printer.printLn("return 1;");
+        v.printer.unindent().printLn("}");
+        v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;");
+    }
+    else {
+        v.useMessageBox.push(false);
+    }
+};
+exports.visitStatement = (statement, v) => {
+    if (typescript_1.default.isExpressionStatement(statement)) {
         exports.visitExpressionStatement(statement, v);
         return;
     }
-    if (typescript_1["default"].isVariableStatement(statement)) {
+    if (typescript_1.default.isVariableStatement(statement)) {
         exports.visitVariableStatement(statement, v);
         return;
     }
-    if (typescript_1["default"].isIfStatement(statement)) {
+    if (typescript_1.default.isIfStatement(statement)) {
         v.printer.print("if ( ");
         expressions.visitExpression(statement.expression, v);
         v.printer.printWithoutSpace(" )");
-        if (typescript_1["default"].isBlock(statement.thenStatement)) {
+        if (typescript_1.default.isBlock(statement.thenStatement)) {
             v.printer.printWithoutSpace(" ");
         }
         else {
@@ -223,35 +166,35 @@ exports.visitStatement = function (statement, v) {
             v.printer.indent();
         }
         exports.visitStatement(statement.thenStatement, v);
-        if (!typescript_1["default"].isBlock(statement.thenStatement)) {
+        if (!typescript_1.default.isBlock(statement.thenStatement)) {
             v.printer.unindent();
         }
         // TODO: handle else if
         if (statement.elseStatement) {
             v.printer.printWithoutSpace(" else ");
-            if (!typescript_1["default"].isBlock(statement.elseStatement)) {
+            if (!typescript_1.default.isBlock(statement.elseStatement)) {
                 v.printer.printWithoutSpace("\n");
                 v.printer.indent();
             }
             exports.visitStatement(statement.elseStatement, v);
-            if (!typescript_1["default"].isBlock(statement.elseStatement)) {
+            if (!typescript_1.default.isBlock(statement.elseStatement)) {
                 v.printer.unindent();
             }
         }
         return;
     }
-    if (typescript_1["default"].isWhileStatement(statement)) {
+    if (typescript_1.default.isWhileStatement(statement)) {
         v.printer.print("while ( ");
         expressions.visitExpression(statement.expression, v);
         v.printer.printWithoutSpace(" ) ");
         exports.visitStatement(statement.statement, v);
         return;
     }
-    if (typescript_1["default"].isForStatement(statement)) {
+    if (typescript_1.default.isForStatement(statement)) {
         v.printer.print("for ( ");
-        var ini = statement.initializer;
+        const ini = statement.initializer;
         if (ini) {
-            if (typescript_1["default"].isVariableDeclarationList(ini)) {
+            if (typescript_1.default.isVariableDeclarationList(ini)) {
                 exports.visitVariableDeclarationList(ini, v);
             }
             else {
@@ -259,12 +202,12 @@ exports.visitStatement = function (statement, v) {
             }
         }
         v.printer.printWithoutSpace("; ");
-        var cond = statement.condition;
+        const cond = statement.condition;
         if (cond) {
             expressions.visitExpression(cond, v);
         }
         v.printer.printWithoutSpace("; ");
-        var incre = statement.incrementor;
+        const incre = statement.incrementor;
         if (incre) {
             expressions.visitExpression(incre, v);
         }
@@ -272,24 +215,24 @@ exports.visitStatement = function (statement, v) {
         exports.visitStatement(statement.statement, v);
         return;
     }
-    if (typescript_1["default"].isBlock(statement)) {
+    if (typescript_1.default.isBlock(statement)) {
         v.printer.printLn("{", { indentLevel: 0 });
         v.printer.indent();
-        statement.statements.forEach(function (e) {
+        statement.statements.forEach((e) => {
             exports.visitStatement(e, v);
         });
         v.printer.unindent();
         v.printer.printLn("}");
         return;
     }
-    diag.emitDiagnostic(statement, "visitStatement: don't know how to handle " + typescript_1["default"].SyntaxKind[statement.kind]);
+    diag.emitDiagnostic(statement, "visitStatement: don't know how to handle " + typescript_1.default.SyntaxKind[statement.kind]);
     process.exit(1);
 };
-exports.visitClassDeclaration = function (classDeclaration, v) {
+exports.visitClassDeclaration = (classDeclaration, v) => {
     if (!util.isGlobal(classDeclaration))
         diag.emitDiagnostic(classDeclaration, "ClassDeclarations is only allowed in global scope");
-    var notAllowedDiagnostic = function () { return diag.emitDiagnostic(classDeclaration, "ClassDeclarations other than tasks are not allowed"); };
-    var heritage = classDeclaration.heritageClauses;
+    let notAllowedDiagnostic = () => diag.emitDiagnostic(classDeclaration, "ClassDeclarations other than tasks are not allowed");
+    const heritage = classDeclaration.heritageClauses;
     if (!heritage || heritage.length != 1 && heritage[0].types.length != 1) {
         notAllowedDiagnostic();
         return;
@@ -298,12 +241,12 @@ exports.visitClassDeclaration = function (classDeclaration, v) {
         notAllowedDiagnostic();
         return;
     }
-    notAllowedDiagnostic = function () { return diag.emitDiagnostic(classDeclaration, "Task Declaration should be only with task function"); };
+    notAllowedDiagnostic = () => diag.emitDiagnostic(classDeclaration, "Task Declaration should be only with task function");
     if (classDeclaration.members.length != 1) {
         notAllowedDiagnostic();
         return;
     }
-    var m = classDeclaration.members[0];
+    const m = classDeclaration.members[0];
     if (!m || !m.name || m.name.getText() != "task") {
         notAllowedDiagnostic();
     }

@@ -9,31 +9,31 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-exports.__esModule = true;
-var typescript_1 = __importDefault(require("typescript"));
-var diag = __importStar(require("../diagnostics"));
-var util = __importStar(require("../utilities"));
-exports.visitExpression = function (expression, v) {
-    if (typescript_1["default"].isBinaryExpression(expression)) {
-        var tmpOptions = v.printer.removeSpaces();
+Object.defineProperty(exports, "__esModule", { value: true });
+const typescript_1 = __importDefault(require("typescript"));
+const diag = __importStar(require("../diagnostics"));
+const util = __importStar(require("../utilities"));
+exports.visitExpression = (expression, v) => {
+    if (typescript_1.default.isBinaryExpression(expression)) {
+        const tmpOptions = v.printer.removeSpaces();
         exports.visitExpression(expression.left, v);
         v.printer.printWithoutSpace(" " + expression.operatorToken.getText() + " ");
         exports.visitExpression(expression.right, v);
         v.printer.setOptions(tmpOptions);
         return;
     }
-    if (typescript_1["default"].isNumericLiteral(expression)) {
+    if (typescript_1.default.isNumericLiteral(expression)) {
         v.printer.printWithoutSpace(expression.text);
         return;
     }
-    if (typescript_1["default"].isCallExpression(expression)) {
+    if (typescript_1.default.isCallExpression(expression)) {
         switch (expression.expression.getText()) {
             case "console.log":
                 // TODO: safer handling
-                v.printer.print("tm_putstring(\"" + expression.arguments.map(function (e) {
-                    if (typescript_1["default"].isLiteralExpression(e))
-                        return e.text.split('').map(function (c) {
-                            var cc = c.charCodeAt(0);
+                v.printer.print("tm_putstring(\"" + expression.arguments.map((e) => {
+                    if (typescript_1.default.isLiteralExpression(e))
+                        return e.text.split('').map((c) => {
+                            const cc = c.charCodeAt(0);
                             if (31 < cc && 127 > cc) {
                                 return c;
                             }
@@ -57,25 +57,24 @@ exports.visitExpression = function (expression, v) {
                 return;
             // TODO: handle arguements
             default:
-                if (typescript_1["default"].isPropertyAccessExpression(expression.expression)) {
+                if (typescript_1.default.isPropertyAccessExpression(expression.expression)) {
                     // TODO: add util for type checker
-                    var type = v.checker.getTypeAtLocation(expression.expression.expression);
+                    let type = v.checker.getTypeAtLocation(expression.expression.expression);
                     if (!type.getBaseTypes()) {
                         // handle `this`
                         type = v.checker.getDeclaredTypeOfSymbol(type.symbol);
                     }
-                    var baseType = type.getBaseTypes();
+                    const baseType = type.getBaseTypes();
                     if (baseType == undefined) {
                         diag.emitDiagnostic(expression, "no base type");
                         process.exit(1);
                     }
                     if (v.checker.typeToString(baseType[0]) == "Task") {
                         if (expression.expression.name.getText() == "start") {
-                            var typeName = v.checker.typeToString(type);
+                            const typeName = v.checker.typeToString(type);
                             v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ");
-                            var argNum = 0;
-                            for (var _i = 0, _a = expression.arguments; _i < _a.length; _i++) {
-                                var arg = _a[_i];
+                            let argNum = 0;
+                            for (const arg of expression.arguments) {
                                 if (argNum != 0) {
                                     diag.emitDiagnostic(expression, "invalid argument in task.start");
                                     process.exit(1);
@@ -86,14 +85,13 @@ exports.visitExpression = function (expression, v) {
                             v.printer.printWithoutSpace(" )");
                         }
                         else if (expression.expression.name.getText() == "wakeUp") {
-                            var typeName = v.checker.typeToString(type);
+                            const typeName = v.checker.typeToString(type);
                             v.printer.print("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )");
                         }
                         else if (expression.expression.name.getText() == "sleep") {
                             v.printer.print("tk_slp_tsk( ");
-                            var argNum = 0;
-                            for (var _b = 0, _c = expression.arguments; _b < _c.length; _b++) {
-                                var arg = _c[_b];
+                            let argNum = 0;
+                            for (const arg of expression.arguments) {
                                 if (argNum != 0) {
                                     diag.emitDiagnostic(expression, "invalid argument in task.start");
                                     process.exit(1);
@@ -105,17 +103,16 @@ exports.visitExpression = function (expression, v) {
                         }
                         else if (expression.expression.name.getText() == "receive") {
                             // receiver type name
-                            var typeName = v.checker.typeToString(type);
-                            var taskName = v.taskNames[v.nowProcessingTaskIndex];
-                            var bufferName = "__" + taskName
+                            const typeName = v.checker.typeToString(type);
+                            const taskName = v.taskNames[v.nowProcessingTaskIndex];
+                            const bufferName = "__" + taskName
                                 + "_buffer";
                             v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
                                 + util.camelToSnake(typeName, true)
                                 + "], &" + bufferName
                                 + ", ");
-                            var argNum = 0;
-                            for (var _d = 0, _e = expression.arguments; _d < _e.length; _d++) {
-                                var arg = _e[_d];
+                            let argNum = 0;
+                            for (const arg of expression.arguments) {
                                 if (argNum > 0) {
                                     diag.emitDiagnostic(expression, "invalid argument in task.start");
                                     process.exit(1);
@@ -127,16 +124,15 @@ exports.visitExpression = function (expression, v) {
                         }
                         else if (expression.expression.name.getText() == "send") {
                             // receiver type name
-                            var typeName = v.checker.typeToString(type);
-                            var taskName = v.taskNames[v.nowProcessingTaskIndex];
-                            var bufferName = "__" + taskName
+                            const typeName = v.checker.typeToString(type);
+                            const taskName = v.taskNames[v.nowProcessingTaskIndex];
+                            const bufferName = "__" + taskName
                                 + "_buffer";
                             v.printer.print("tk_snd_mbf( ObjID[MBUF_"
                                 + util.camelToSnake(typeName, true)
                                 + "], &" + bufferName + ", sizeof " + bufferName + ", ");
-                            var argNum = 0;
-                            for (var _f = 0, _g = expression.arguments; _f < _g.length; _f++) {
-                                var arg = _g[_f];
+                            let argNum = 0;
+                            for (const arg of expression.arguments) {
                                 if (argNum > 0) {
                                     diag.emitDiagnostic(expression, "invalid argument in task.start");
                                     process.exit(1);
@@ -159,7 +155,7 @@ exports.visitExpression = function (expression, v) {
                 }
                 // TODO: check this is needed
                 // Maybe for the nodes without pos because of syntesis such as tk_ext_tsk.
-                if (typescript_1["default"].isIdentifier(expression.expression)) {
+                if (typescript_1.default.isIdentifier(expression.expression)) {
                     v.printer.print(expression.expression.text + "()");
                     return;
                 }
@@ -188,17 +184,15 @@ exports.visitExpression = function (expression, v) {
     }
     v.printer.printWithoutSpace(expression.getText());
 };
-exports.handleClassMembers = function (members, v) {
-    for (var _i = 0, members_1 = members; _i < members_1.length; _i++) {
-        var member = members_1[_i];
-        var invalidOverrideMessage = "please override only task with protected keyword";
-        if (typescript_1["default"].isMethodDeclaration(member)) {
+exports.handleClassMembers = (members, v) => {
+    for (const member of members) {
+        const invalidOverrideMessage = "please override only task with protected keyword";
+        if (typescript_1.default.isMethodDeclaration(member)) {
             if (!member.modifiers) {
                 diag.emitDiagnostic(member, invalidOverrideMessage);
                 process.exit(1);
             }
-            for (var _a = 0, _b = member.modifiers; _a < _b.length; _a++) {
-                var mod = _b[_a];
+            for (const mod of member.modifiers) {
                 if (mod.getText() == "protected") {
                     continue;
                 }
