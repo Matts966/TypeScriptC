@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -10,42 +7,45 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 exports.__esModule = true;
-var typescript_1 = __importDefault(require("typescript"));
 var diag = __importStar(require("../diagnostics"));
 var tKernelImported = false;
-var isImportKnown = function (i) {
+var getNameOfImport = function (i) {
     var ic = i.importClause;
     if (!ic)
-        return;
+        return null;
     var namedImport = ic.namedBindings;
-    if (namedImport.name.text != "tkernel") {
-        return false;
-    }
-    tKernelImported = true;
-    return true;
+    return namedImport.name.text;
 };
-exports.handleImport = function (node, visitor) {
-    if (typescript_1["default"].isImportDeclaration(node)) {
-        if (!isImportKnown(node)) {
-            diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
-                by `import * as tkernel from "./tkernel"` \
-                or `import * as mqtt from "./mqtt"`');
-            process.exit(1);
-        }
-        return true;
+var checkImport = function (node) {
+    var name = getNameOfImport(node);
+    // TODO: check contents
+    if (name == 'tkernel' || name == 'mqtt') {
+        return;
     }
-    if (!tKernelImported) {
-        diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
-            by `import * as tkernel from "./tkernel"` \
-            or `import * as mqtt from "./mqtt"`');
-        process.exit(1);
-    }
+    diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
+        by `import * as tkernel from "./tkernel"` or \
+        by `import * as mqtt from "./mqtt"`.');
+    process.exit(1);
 };
-exports.importsToIncludes = function (imports) {
-    return [
-        "#include <tk/tkernel.h>",
-        "#include <tm/tmonitor.h>",
-        "#include <libstr.h>"
-    ];
+exports.importsToIncludes = function (node) {
+    var includesMap = new Map([
+        ['tkernel', [
+                "#include <tk/tkernel.h>",
+                "#include <tm/tmonitor.h>",
+                "#include <libstr.h>"
+            ]],
+        ['mqtt', [
+                "#include \"wolfmqtt/mqtt_client.h\"",
+                "#include \"examples/mqttnet.h\"",
+                "#include \"examples/mqttclient/mqttclient.h\""
+            ]]
+    ]);
+    checkImport(node);
+    var name = getNameOfImport(node);
+    if (name == null)
+        return [];
+    if (includesMap.get(name) == null)
+        return [];
+    return includesMap.get(name);
 };
 //# sourceMappingURL=imports.js.map

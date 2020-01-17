@@ -94,6 +94,49 @@ exports.visitExpression = function (expression, v) {
                             }
                             v.printer.printWithoutSpace(" )");
                         }
+                        else if (expression.expression.name.getText() == "receive") {
+                            // receiver type name
+                            var typeName = v.checker.typeToString(type);
+                            var taskName = v.taskNames[v.nowProcessingTaskIndex];
+                            var bufferName = "__" + taskName
+                                + "_buffer";
+                            v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
+                                + util.camelToSnake(typeName, true)
+                                + "], &" + bufferName
+                                + ", ");
+                            var argNum = 0;
+                            for (var _d = 0, _e = expression.arguments; _d < _e.length; _d++) {
+                                var arg = _e[_d];
+                                if (argNum > 0) {
+                                    diag.emitDiagnostic(expression, "invalid argument in task.start");
+                                    process.exit(1);
+                                }
+                                exports.visitExpression(arg, v);
+                                ++argNum;
+                            }
+                            v.printer.printWithoutSpace(" )");
+                        }
+                        else if (expression.expression.name.getText() == "send") {
+                            // receiver type name
+                            var typeName = v.checker.typeToString(type);
+                            var taskName = v.taskNames[v.nowProcessingTaskIndex];
+                            var bufferName = "__" + taskName
+                                + "_buffer";
+                            v.printer.print("tk_snd_mbf( ObjID[MBUF_"
+                                + util.camelToSnake(typeName, true)
+                                + "], &" + bufferName + ", sizeof " + bufferName + ", ");
+                            var argNum = 0;
+                            for (var _f = 0, _g = expression.arguments; _f < _g.length; _f++) {
+                                var arg = _g[_f];
+                                if (argNum > 0) {
+                                    diag.emitDiagnostic(expression, "invalid argument in task.start");
+                                    process.exit(1);
+                                }
+                                exports.visitExpression(arg, v);
+                                ++argNum;
+                            }
+                            v.printer.printWithoutSpace(" )");
+                        }
                         else {
                             diag.emitDiagnostic(expression, "PropertyAccessExpression: don't know how to handle " + expression.expression.name.getText());
                             process.exit(1);

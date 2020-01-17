@@ -4,39 +4,43 @@ import { visitor } from './visitor'
 
 let tKernelImported = false
 
-const isImportKnown = (i : ts.ImportDeclaration) => {
+const getNameOfImport = (i : ts.ImportDeclaration) => {
     const ic = i.importClause
-    if (!ic) return
+    if (!ic) return null
     let namedImport = ic.namedBindings as ts.NamespaceImport
-    if (namedImport.name.text != "tkernel") {
-        return false
-    }
-    tKernelImported = true
-    return true
+    return namedImport.name.text
 }
 
-export const handleImport = (node : ts.Node, visitor : visitor) => {
-    if (ts.isImportDeclaration(node)) {
-        if (!isImportKnown(node)) {
-            diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
-                by `import * as tkernel from "./tkernel"` \
-                or `import * as mqtt from "./mqtt"`')
-            process.exit(1)
-        }
-        return true
+const checkImport = (node : ts.ImportDeclaration) => {
+    const name = getNameOfImport(node)
+    // TODO: check contents
+    if (name == 'tkernel' || name == 'mqtt') {
+        return
     }
-    if (!tKernelImported) {
-        diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
-            by `import * as tkernel from "./tkernel"` \
-            or `import * as mqtt from "./mqtt"`')
-        process.exit(1)
-    }
+    diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
+        by `import * as tkernel from "./tkernel"` or \
+        by `import * as mqtt from "./mqtt"`.')
+    process.exit(1)
 }
 
-export const importsToIncludes = (imports : string[]) => {
-    return [
-        `#include <tk/tkernel.h>`,
-        `#include <tm/tmonitor.h>`,
-        `#include <libstr.h>`
-    ]
+export const importsToIncludes = (node : ts.ImportDeclaration) : string[] => {
+    let includesMap = new Map<string, string[]>(
+        [
+            ['tkernel', [
+                `#include <tk/tkernel.h>`,
+                `#include <tm/tmonitor.h>`,
+                `#include <libstr.h>`
+            ]],
+            ['mqtt', [
+                `#include "wolfmqtt/mqtt_client.h"`,
+                `#include "examples/mqttnet.h"`,
+                `#include "examples/mqttclient/mqttclient.h"`
+            ]]
+        ]
+    )
+    checkImport(node)
+    const name = getNameOfImport(node)
+    if (name == null) return []
+    if (includesMap.get(name) == null) return []
+    return includesMap.get(name)!
 }

@@ -53,7 +53,7 @@ EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 		} else if (c == 'c') {
 			rc = mqttclient_connect(&mqttCtx);
 		}
-		
+
 		if (rc != MQTT_CODE_SUCCESS) {
 			break;
 		}

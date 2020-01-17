@@ -85,6 +85,45 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                                 ++argNum
                             }
                             v.printer.printWithoutSpace(" )")
+                        } else if (expression.expression.name.getText() == "receive") {
+                            // receiver type name
+                            const typeName = v.checker.typeToString(type)
+                            const taskName = v.taskNames[v.nowProcessingTaskIndex]
+                            const bufferName = "__" + taskName
+                                + "_buffer"
+                            v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
+                                + util.camelToSnake(typeName, true)
+                                + "], &" + bufferName
+                                + ", ")
+                            let argNum = 0
+                            for (const arg of expression.arguments) {
+                                if (argNum > 0) {
+                                    diag.emitDiagnostic(expression, "invalid argument in task.start")
+                                    process.exit(1)
+                                }
+                                visitExpression(arg, v)
+                                ++argNum
+                            }
+                            v.printer.printWithoutSpace(" )")
+                        } else if (expression.expression.name.getText() == "send") {
+                            // receiver type name
+                            const typeName = v.checker.typeToString(type)
+                            const taskName = v.taskNames[v.nowProcessingTaskIndex]
+                            const bufferName = "__" + taskName
+                                + "_buffer"
+                            v.printer.print("tk_snd_mbf( ObjID[MBUF_"
+                                + util.camelToSnake(typeName, true)
+                                + "], &" + bufferName + ", sizeof " + bufferName + ", ")
+                            let argNum = 0
+                            for (const arg of expression.arguments) {
+                                if (argNum > 0) {
+                                    diag.emitDiagnostic(expression, "invalid argument in task.start")
+                                    process.exit(1)
+                                }
+                                visitExpression(arg, v)
+                                ++argNum
+                            }
+                            v.printer.printWithoutSpace(" )")
                         } else {
                             diag.emitDiagnostic(expression, "PropertyAccessExpression: don't know how to handle " + expression.expression.name.getText())
                             process.exit(1)

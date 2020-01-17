@@ -31,6 +31,9 @@ const main = () => {
     visitor.printTasks()
 
     console.log(`EXPORT INT usermain( void ) {`)
+    if (visitor.useMessageBox.some((e) => e)) {
+        console.log(`\tT_CMBF cmbf = { NULL, TA_TFIFO, 256, 5 };`)
+    }
     if (visitor.tasks.length != 0) {
         console.log(`\tT_CTSK t_ctsk;
 \tID objid;

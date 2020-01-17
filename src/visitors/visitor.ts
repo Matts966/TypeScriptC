@@ -9,20 +9,27 @@ export class visitor {
     printer : p.Printer
     checker : ts.TypeChecker
     tasks : ts.MethodDeclaration[]
+    taskNames : string[]
+    useMessageBox : boolean[]
+    nowProcessingTaskIndex : number
     private includes : string[]
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
         this.printer = printer
         this.checker = checker
         this.tasks = []
+        this.taskNames = []
+        this.useMessageBox = []
         this.includes = []
+        this.nowProcessingTaskIndex = 0
     }
 
     visit = (node : ts.Node) => {
         if (node.kind == ts.SyntaxKind.EndOfFileToken) {
             return
         }
-        if (imports.handleImport(node, this)) {
+        if (ts.isImportDeclaration(node)) {
+            this.includes = this.includes.concat(imports.importsToIncludes(node))
             return
         }
         if (ts.isClassDeclaration(node)) {
@@ -75,14 +82,27 @@ export class visitor {
 
         this.printer = new p.StdOutPrinter
 
-        const taskNames = this.tasks.map((m) => {
+        this.taskNames = this.tasks.map((m) => {
             return util.getTypeString(m.parent, this.checker)
         })
 
-        this.printer.printLn("typedef enum { " + taskNames.map((name) => name.toUpperCase() + ", ").join('') + "OBJ_KIND_NUM } OBJ_KIND;")
+        this.printer.printLn("typedef enum { "
+            + this.taskNames.map((name, index) =>
+                name.toUpperCase() + ", "
+                + (this.useMessageBox[index] ? "MBUF_" + name.toUpperCase() + ", " : "")
+            ).join('')
+            + "OBJ_KIND_NUM } OBJ_KIND;")
+
         this.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
         this.printer.printLn("")
-        this.tasks.forEach((m) => {
+        this.tasks.forEach((m, index) => {
+            this.nowProcessingTaskIndex = index
+
+            // Define buffer for the message buffer
+            if (this.useMessageBox[index]) {
+                this.printer.printLn("UB __" + this.taskNames[index] + "_buffer;")
+            }
+
             const taskSig = "EXPORT void " + util.getTypeString(m.parent, this.checker) + "(INT stacd, VP exinf)"
             this.printer.printLn(taskSig + ';')
             this.printer.print(taskSig + " ")
@@ -111,6 +131,10 @@ export class visitor {
     }
 
     printIncludes = () => {
+        if (this.includes.length == 0) {
+            return
+        }
+
         let tmpPrinter = this.printer
 
         this.printer = new p.StdOutPrinter

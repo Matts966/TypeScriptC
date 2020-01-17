@@ -51,6 +51,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     process.exit(1)
                 }
                 expressions.handleClassMembers(expr.expression.members, v)
+                let messageBoxCount = 0
                 if (!expr.arguments) {
                     v.printer.printLn("t_ctsk.stksz = 1024;")
                     v.printer.printLn("t_ctsk.itskpri = 1;")
@@ -62,6 +63,14 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                             expressions.visitExpression(arg, v)
                             v.printer.printWithoutSpace(";\n")
                         } else if (argNum == 1) {
+                            if (+arg.getText() == 0) continue
+                            if (+arg.getText() > 0) {
+                                messageBoxCount = +arg.getText()
+                                continue
+                            }
+                            diag.emitDiagnostic(arg, "mailbox count should be zero or positive")
+                            process.exit(1)
+                        } else if (argNum == 2) {
                             v.printer.print("t_ctsk.stksz = ")
                             expressions.visitExpression(arg, v)
                             v.printer.printLn(";")
@@ -92,6 +101,17 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                 v.printer.printLn("return 1;")
                 v.printer.unindent().printLn("}")
                 v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
+                if (messageBoxCount > 0) {
+                    v.useMessageBox.push(true)
+                    v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";")
+                    v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {")
+                    v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");")
+                    v.printer.printLn("return 1;")
+                    v.printer.unindent().printLn("}")
+                    v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;")
+                } else {
+                    v.useMessageBox.push(false)
+                }
                 continue
             }
             // TODO: merge handling with ClassExpression by makeing function
