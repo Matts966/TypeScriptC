@@ -1,9 +1,9 @@
+test-mqtt: fmt
+	./test.sh ./tests/mqtt_shell.ts
 test: fmt
 	./test.sh
 test-message: fmt
 	./test.sh ./tests/message_passing.ts
-test-mqtt: fmt
-	./test.sh ./tests/mqtt_shell.ts
 run: src/index.ts build
 	node ./dist/index.js sample_usermain.ts
 build: tsconfig.json

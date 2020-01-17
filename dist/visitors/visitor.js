@@ -55,17 +55,9 @@ var visitor = /** @class */ (function () {
                 if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
                     // using checker sample
                     var symbol = _this.checker.getSymbolAtLocation(sourceFile);
-                    var src = symbol.valueDeclaration;
-                    if (typescript_1["default"].isSourceFile(src)) {
-                        for (var _b = 0, _c = src.statements; _b < _c.length; _b++) {
-                            var node = _c[_b];
-                            // TODO: handle declarations for later use
-                            if (typescript_1["default"].isClassDeclaration(node)) {
-                            }
-                            if (typescript_1["default"].isVariableStatement(node)) {
-                            }
-                        }
-                    }
+                    // no program
+                    if (!symbol)
+                        process.exit(0);
                     // Walk the tree to search source code.
                     typescript_1["default"].forEachChild(sourceFile, _this.visit);
                 }
