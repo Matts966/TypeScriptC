@@ -51,22 +51,10 @@ export class visitor {
     visitProgram = (program : ts.Program) => {
         for (const sourceFile of program.getSourceFiles()) {
             if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
-
                 // using checker sample
-                const symbol = this.checker.getSymbolAtLocation(sourceFile)!
-                const src = symbol.valueDeclaration
-                if (ts.isSourceFile(src)) {
-                    for (const node of src.statements) {
-                        // TODO: handle declarations for later use
-                        if (ts.isClassDeclaration(node)) {
-
-                        }
-                        if (ts.isVariableStatement(node)) {
-
-                        }
-                    }
-                }
-
+                const symbol = this.checker.getSymbolAtLocation(sourceFile)
+                // no program
+                if (!symbol) process.exit(0)
                 // Walk the tree to search source code.
                 ts.forEachChild(sourceFile, this.visit)
             }
