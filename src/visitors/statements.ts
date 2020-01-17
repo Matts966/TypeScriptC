@@ -80,6 +80,8 @@ const isTask = (location : ts.Node | undefined, v : visitor) => {
     }
     return true
 }
+// TODO: Fix bugs about collision of identifier caused by ignored identifier
+// and formatting identifier
 const handleTaskInitialization = (newExpr : ts.NewExpression,
     taskIdent : ts.Identifier, v : visitor) => {
     let messageBoxCount = 0
