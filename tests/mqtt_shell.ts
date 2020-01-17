@@ -37,7 +37,7 @@ const taskMqttShell = new class TaskMqttShell extends tkernel.Task {
             }
         }
         console.log(" *** MQTT shell: error occured.")
-        tkernel.parentTask.wakeUp()
+        tkernel.entryTask.wakeUp()
     }
 }()
 console.log("*** task_mqtt_shell created.");

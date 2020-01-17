@@ -13,7 +13,7 @@ EXPORT ID ObjID[OBJ_KIND_NUM];
 
 ID parent_id;
 
-char line[16];
+char* line;
 
 EXPORT void task_mqtt_shell(INT stacd, VP exinf);
 EXPORT void task_mqtt_shell(INT stacd, VP exinf) {

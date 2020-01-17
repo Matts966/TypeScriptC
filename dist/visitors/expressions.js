@@ -51,6 +51,10 @@ exports.visitExpression = function (expression, v) {
                 v.printer.printLn("tm_putstring((UB*)" + expression.arguments[0].getText() + ");");
                 v.printer.print("tm_getchar(-1)");
                 return;
+            // TODO: check if not in task (in other words the context is entry task)
+            case "tkernel.sleep":
+                v.printer.printLn("tk_slp_tsk(" + exports.visitExpression(expression.arguments[0], v) + ");");
+                return;
             // TODO: handle arguements
             default:
                 if (typescript_1["default"].isPropertyAccessExpression(expression.expression)) {
@@ -60,7 +64,12 @@ exports.visitExpression = function (expression, v) {
                         // handle `this`
                         type = v.checker.getDeclaredTypeOfSymbol(type.symbol);
                     }
-                    if (v.checker.typeToString(type.getBaseTypes()[0]) == "Task") {
+                    var baseType = type.getBaseTypes();
+                    if (baseType == undefined) {
+                        diag.emitDiagnostic(expression, "no base type");
+                        process.exit(1);
+                    }
+                    if (v.checker.typeToString(baseType[0]) == "Task") {
                         if (expression.expression.name.getText() == "start") {
                             var typeName = v.checker.typeToString(type);
                             v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ");

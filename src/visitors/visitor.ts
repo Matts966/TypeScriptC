@@ -50,7 +50,9 @@ export class visitor {
 
     visitProgram = (program : ts.Program) => {
         for (const sourceFile of program.getSourceFiles()) {
-            if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
+            if (!sourceFile.isDeclarationFile &&
+                !sourceFile.fileName.endsWith("tkernel.ts") &&
+                !sourceFile.fileName.endsWith("mqtt.ts")) {
                 // using checker sample
                 const symbol = this.checker.getSymbolAtLocation(sourceFile)
                 // no program

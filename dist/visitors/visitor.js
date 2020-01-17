@@ -52,7 +52,9 @@ var visitor = /** @class */ (function () {
         this.visitProgram = function (program) {
             for (var _i = 0, _a = program.getSourceFiles(); _i < _a.length; _i++) {
                 var sourceFile = _a[_i];
-                if (!sourceFile.isDeclarationFile && !sourceFile.fileName.endsWith("tkernel.ts")) {
+                if (!sourceFile.isDeclarationFile &&
+                    !sourceFile.fileName.endsWith("tkernel.ts") &&
+                    !sourceFile.fileName.endsWith("mqtt.ts")) {
                     // using checker sample
                     var symbol = _this.checker.getSymbolAtLocation(sourceFile);
                     // no program
