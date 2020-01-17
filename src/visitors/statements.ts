@@ -147,7 +147,8 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
     }
 }
 const handleMQTTClientDeclaration = (d : ts.VariableDeclaration, v : visitor) => {
-
+    v.printer.printLn("MQTTCtx " + d.name.getText() + ";")
+    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ");")
 }
 export const visitStatement = (statement : ts.Statement, v : visitor) => {
     if (ts.isExpressionStatement(statement)) {

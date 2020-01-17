@@ -17,11 +17,11 @@ char* line;
 
 EXPORT void task_mqtt_shell(INT stacd, VP exinf);
 EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
-	MQTTCtx mqttCtx;
+	MQTTCtx client;
 	mqtt_init_ctx(&mqttCtx);
-	mqttCtx.host = "test.mosquitto.org";
-	mqttCtx.port = 1883;
-	mqttCtx.qos = 1;
+	client.host = "test.mosquitto.org";
+	client.port = 1883;
+	client.qos = 1;
 	int rc = MQTT_CODE_SUCCESS;
 
 	while ( 1 ) {
@@ -35,22 +35,22 @@ EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 		if (c == 'p') {
 			tm_putstring("topic: ");
 			tm_getline(line);
-			mqttCtx.topic_name = line;
+			client.topic_name = line;
 			tm_putstring("message: ");
 			tm_getline(line);
-			mqttCtx.publish.buffer = line;
-			rc = mqttclient_publish(&mqttCtx);
+			client.publish.buffer = line;
+			rc = mqttclient_publish(&client);
 		} else if (c == 's') {
 			tm_putstring("topic: ");
 			tm_getline(line);
-			mqttCtx.topic_name = line;
-			rc = mqttclient_subscribe(&mqttCtx);
+			client.topic_name = line;
+			rc = mqttclient_subscribe(&client);
 		} else if (c == 'w') {
-			rc = mqttclient_wait(&mqttCtx);
+			rc = mqttclient_wait(&client);
 		} else if (c == 'k') {
-			rc = mqttclient_ping(&mqttCtx);
+			rc = mqttclient_ping(&client);
 		} else if (c == 'c') {
-			rc = mqttclient_connect(&mqttCtx);
+			rc = mqttclient_connect(&client);
 		}
 
 		if (rc != MQTT_CODE_SUCCESS) {

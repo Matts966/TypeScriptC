@@ -25,6 +25,7 @@ exports.visitExpressionStatement = (expressionStatement, v) => {
     v.printer.printWithoutSpace(";\n");
 };
 exports.visitVariableStatement = (variableStatement, v) => {
+    typescript_1.default.isPropertyAssignment;
     exports.visitVariableDeclarationList(variableStatement.declarationList, v);
 };
 exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
@@ -86,6 +87,8 @@ const isTask = (location, v) => {
     }
     return true;
 };
+// TODO: Fix bugs about collision of identifier caused by ignored identifier
+// and formatting identifier
 const handleTaskInitialization = (newExpr, taskIdent, v) => {
     let messageBoxCount = 0;
     if (!newExpr.arguments) {
@@ -155,6 +158,8 @@ const handleTaskInitialization = (newExpr, taskIdent, v) => {
     }
 };
 const handleMQTTClientDeclaration = (d, v) => {
+    v.printer.printLn("MQTTCtx " + d.name.getText() + ";");
+    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ");");
 };
 exports.visitStatement = (statement, v) => {
     if (typescript_1.default.isExpressionStatement(statement)) {
