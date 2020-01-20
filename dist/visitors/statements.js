@@ -232,6 +232,10 @@ exports.visitStatement = (statement, v) => {
         }
         return;
     }
+    if (typescript_1.default.isBreakStatement(statement)) {
+        v.printer.printLn("break;");
+        return;
+    }
     if (typescript_1.default.isWhileStatement(statement)) {
         v.printer.print("while ( ");
         expressions.visitExpression(statement.expression, v);

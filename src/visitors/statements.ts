@@ -224,6 +224,10 @@ export const visitStatement = (statement : ts.Statement, v : visitor) => {
         }
         return
     }
+    if (ts.isBreakStatement(statement)) {
+        v.printer.printLn("break;")
+        return
+    }
     if (ts.isWhileStatement(statement)) {
         v.printer.print("while ( ")
         expressions.visitExpression(statement.expression, v)

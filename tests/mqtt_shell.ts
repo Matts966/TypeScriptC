@@ -16,19 +16,23 @@ const taskMqttShell = new class TaskMqttShell extends tkernel.Task {
             const c = tkernel.ask("- Push k to keep connection.")
             if (c == 'c') {
                 result = client.connect()
-            } else if (c == 'p') {
+            }
+            if (c == 'p') {
                 let topic = tkernel.ask_line("topic: ")
                 client.topic = topic
                 let message = tkernel.ask_line("message: ")
                 client.message = message
                 result = client.publish()
-            } else if (c == 's') {
+            }
+            if (c == 's') {
                 let topic = tkernel.ask_line("topic: ")
                 client.topic = topic
                 result = client.subscribe()
-            } else if (c == 'w') {
+            }
+            if (c == 'w') {
                 result = client.wait()
-            } else if (c == 'k') {
+            }
+            if (c == 'k') {
                 result = client.ping()
             }
 
