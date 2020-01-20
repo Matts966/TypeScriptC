@@ -64,7 +64,7 @@ exports.visitExpression = (expression, v) => {
             default:
                 if (typescript_1.default.isPropertyAccessExpression(expression.expression)) {
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
-                        handleMQTTClientMethod();
+                        handleMQTTClientMethod(expression.expression.name.getText());
                     }
                     // TODO: add util for type checker
                     let type = v.checker.getTypeAtLocation(expression.expression.expression);
@@ -117,79 +117,88 @@ exports.visitExpression = (expression, v) => {
     }
     v.printer.printWithoutSpace(expression.getText());
 };
-const handleMQTTClientMethod = () => {
+const handleMQTTClientMethod = (methodName) => {
+    switch (methodName) {
+    }
 };
 const handleTaskMethod = (method, args, typeName, v) => {
-    if (method.name.getText() == "start") {
-        v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ");
-        let argNum = 0;
-        for (const arg of args) {
-            if (argNum != 0) {
-                diag.emitDiagnostic(arg, "invalid argument in task.start");
-                process.exit(1);
+    switch (method.name.getText()) {
+        case "start": {
+            v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ");
+            let argNum = 0;
+            for (const arg of args) {
+                if (argNum != 0) {
+                    diag.emitDiagnostic(arg, "invalid argument in task.start");
+                    process.exit(1);
+                }
+                exports.visitExpression(arg, v);
+                ++argNum;
             }
-            exports.visitExpression(arg, v);
-            ++argNum;
+            v.printer.printWithoutSpace(" )");
+            break;
         }
-        v.printer.printWithoutSpace(" )");
-    }
-    else if (method.name.getText() == "wakeUp") {
-        v.printer.print("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )");
-    }
-    else if (method.name.getText() == "sleep") {
-        v.printer.print("tk_slp_tsk( ");
-        let argNum = 0;
-        for (const arg of args) {
-            if (argNum != 0) {
-                diag.emitDiagnostic(arg, "invalid argument in task.start");
-                process.exit(1);
+        case "wakeUp": {
+            v.printer.print("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )");
+            break;
+        }
+        case "sleep": {
+            v.printer.print("tk_slp_tsk( ");
+            let argNum = 0;
+            for (const arg of args) {
+                if (argNum != 0) {
+                    diag.emitDiagnostic(arg, "invalid argument in task.start");
+                    process.exit(1);
+                }
+                exports.visitExpression(arg, v);
+                ++argNum;
             }
-            exports.visitExpression(arg, v);
-            ++argNum;
+            v.printer.printWithoutSpace(" )");
+            break;
         }
-        v.printer.printWithoutSpace(" )");
-    }
-    else if (method.name.getText() == "receive") {
-        const taskName = v.taskNames[v.nowProcessingTaskIndex];
-        const bufferName = "__" + taskName
-            + "_buffer";
-        v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
-            + util.camelToSnake(typeName, true)
-            + "], &" + bufferName
-            + ", ");
-        let argNum = 0;
-        for (const arg of args) {
-            if (argNum > 0) {
-                diag.emitDiagnostic(arg, "invalid argument in task.start");
-                process.exit(1);
+        case "receive": {
+            const taskName = v.taskNames[v.nowProcessingTaskIndex];
+            const bufferName = "__" + taskName
+                + "_buffer";
+            v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
+                + util.camelToSnake(typeName, true)
+                + "], &" + bufferName
+                + ", ");
+            let argNum = 0;
+            for (const arg of args) {
+                if (argNum > 0) {
+                    diag.emitDiagnostic(arg, "invalid argument in task.start");
+                    process.exit(1);
+                }
+                exports.visitExpression(arg, v);
+                ++argNum;
             }
-            exports.visitExpression(arg, v);
-            ++argNum;
+            v.printer.printWithoutSpace(" )");
+            break;
         }
-        v.printer.printWithoutSpace(" )");
-    }
-    else if (method.name.getText() == "send") {
-        // receiver type name
-        const taskName = v.taskNames[v.nowProcessingTaskIndex];
-        const bufferName = "__" + taskName
-            + "_buffer";
-        v.printer.print("tk_snd_mbf( ObjID[MBUF_"
-            + util.camelToSnake(typeName, true)
-            + "], &" + bufferName + ", sizeof " + bufferName + ", ");
-        let argNum = 0;
-        for (const arg of args) {
-            if (argNum > 0) {
-                diag.emitDiagnostic(arg, "invalid argument in task.start");
-                process.exit(1);
+        case "send": {
+            // receiver type name
+            const taskName = v.taskNames[v.nowProcessingTaskIndex];
+            const bufferName = "__" + taskName
+                + "_buffer";
+            v.printer.print("tk_snd_mbf( ObjID[MBUF_"
+                + util.camelToSnake(typeName, true)
+                + "], &" + bufferName + ", sizeof " + bufferName + ", ");
+            let argNum = 0;
+            for (const arg of args) {
+                if (argNum > 0) {
+                    diag.emitDiagnostic(arg, "invalid argument in task.start");
+                    process.exit(1);
+                }
+                exports.visitExpression(arg, v);
+                ++argNum;
             }
-            exports.visitExpression(arg, v);
-            ++argNum;
+            v.printer.printWithoutSpace(" )");
+            break;
         }
-        v.printer.printWithoutSpace(" )");
-    }
-    else {
-        diag.emitDiagnostic(method, "don't know how to handle task method" + method.name.getText());
-        process.exit(1);
+        default: {
+            diag.emitDiagnostic(method, "don't know how to handle task method" + method.name.getText());
+            process.exit(1);
+        }
     }
 };
 exports.handleClassMembers = (members, v) => {
