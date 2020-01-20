@@ -11,10 +11,14 @@ const getNameOfImport = (i : ts.ImportDeclaration) => {
     return namedImport.name.text
 }
 
-const checkImport = (node : ts.ImportDeclaration) => {
+const checkImport = (node : ts.ImportDeclaration, v : visitor) => {
     const name = getNameOfImport(node)
     // TODO: check contents
-    if (name == 'tkernel' || name == 'mqtt') {
+    if (name == 'tkernel') {
+        return
+    }
+    if (name == 'mqtt') {
+        v.useNetwork = true
         return
     }
     diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
@@ -23,7 +27,7 @@ const checkImport = (node : ts.ImportDeclaration) => {
     process.exit(1)
 }
 
-export const importsToIncludes = (node : ts.ImportDeclaration) : string[] => {
+export const importsToIncludes = (node : ts.ImportDeclaration, v : visitor) : string[] => {
     let includesMap = new Map<string, string[]>(
         [
             ['tkernel', [
@@ -38,7 +42,7 @@ export const importsToIncludes = (node : ts.ImportDeclaration) : string[] => {
             ]]
         ]
     )
-    checkImport(node)
+    checkImport(node, v)
     const name = getNameOfImport(node)
     if (name == null) return []
     if (includesMap.get(name) == null) return []

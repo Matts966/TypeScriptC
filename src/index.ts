@@ -41,6 +41,16 @@ const main = () => {
 `);
     }
 
+    if (visitor.useNetwork) {
+        console.log(`\t// Network initialization
+\t#define NET_CONF_EMULATOR (1)
+\t#define NET_CONF_DHCP   (1)
+\tNetDrv(0, NULL);
+\tso_main(0, NULL);
+\tnet_conf(NET_CONF_EMULATOR, NET_CONF_DHCP);
+`);
+    }
+
     (visitor.printer as p.BufferedPrinter).outputBuffer()
 
     console.log(`}`)

@@ -16,10 +16,14 @@ const getNameOfImport = (i) => {
     let namedImport = ic.namedBindings;
     return namedImport.name.text;
 };
-const checkImport = (node) => {
+const checkImport = (node, v) => {
     const name = getNameOfImport(node);
     // TODO: check contents
-    if (name == 'tkernel' || name == 'mqtt') {
+    if (name == 'tkernel') {
+        return;
+    }
+    if (name == 'mqtt') {
+        v.useNetwork = true;
         return;
     }
     diag.emitDiagnostic(node, 'please import only tkernel or mqtt \
@@ -27,7 +31,7 @@ const checkImport = (node) => {
         by `import * as mqtt from "./mqtt"`.');
     process.exit(1);
 };
-exports.importsToIncludes = (node) => {
+exports.importsToIncludes = (node, v) => {
     let includesMap = new Map([
         ['tkernel', [
                 `#include <tk/tkernel.h>`,
@@ -40,7 +44,7 @@ exports.importsToIncludes = (node) => {
                 `#include "examples/mqttclient/mqttclient.h"`
             ]]
     ]);
-    checkImport(node);
+    checkImport(node, v);
     const name = getNameOfImport(node);
     if (name == null)
         return [];

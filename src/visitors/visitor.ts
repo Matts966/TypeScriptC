@@ -8,22 +8,17 @@ import * as util from '../utilities'
 export class visitor {
     printer : p.Printer
     checker : ts.TypeChecker
-    tasks : ts.MethodDeclaration[]
-    taskNames : string[]
-    useMessageBox : boolean[]
-    useLineBuffer : boolean
-    nowProcessingTaskIndex : number
-    private includes : string[]
+    tasks : ts.MethodDeclaration[] = []
+    taskNames : string[] = []
+    useMessageBox : boolean[] = []
+    useLineBuffer : boolean = false
+    useNetwork : boolean = false
+    nowProcessingTaskIndex : number = 0
+    private includes : string[] = []
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
         this.printer = printer
         this.checker = checker
-        this.tasks = []
-        this.taskNames = []
-        this.useMessageBox = []
-        this.useLineBuffer = false
-        this.includes = []
-        this.nowProcessingTaskIndex = 0
     }
 
     visit = (node : ts.Node) => {
@@ -31,7 +26,7 @@ export class visitor {
             return
         }
         if (ts.isImportDeclaration(node)) {
-            this.includes = this.includes.concat(imports.importsToIncludes(node))
+            this.includes = this.includes.concat(imports.importsToIncludes(node, this))
             return
         }
         if (ts.isClassDeclaration(node)) {

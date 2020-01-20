@@ -18,12 +18,19 @@ const p = __importStar(require("../printer"));
 const util = __importStar(require("../utilities"));
 class visitor {
     constructor(printer, checker) {
+        this.tasks = [];
+        this.taskNames = [];
+        this.useMessageBox = [];
+        this.useLineBuffer = false;
+        this.useNetwork = false;
+        this.nowProcessingTaskIndex = 0;
+        this.includes = [];
         this.visit = (node) => {
             if (node.kind == typescript_1.default.SyntaxKind.EndOfFileToken) {
                 return;
             }
             if (typescript_1.default.isImportDeclaration(node)) {
-                this.includes = this.includes.concat(imports.importsToIncludes(node));
+                this.includes = this.includes.concat(imports.importsToIncludes(node, this));
                 return;
             }
             if (typescript_1.default.isClassDeclaration(node)) {
@@ -122,12 +129,6 @@ class visitor {
         };
         this.printer = printer;
         this.checker = checker;
-        this.tasks = [];
-        this.taskNames = [];
-        this.useMessageBox = [];
-        this.useLineBuffer = false;
-        this.includes = [];
-        this.nowProcessingTaskIndex = 0;
     }
 }
 exports.visitor = visitor;
