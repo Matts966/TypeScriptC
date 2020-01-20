@@ -145,23 +145,23 @@ exports.visitExpression = (expression, v) => {
 const handleMQTTClientMethod = (method, v) => {
     switch (method.name.getText()) {
         case "connect": {
-            v.printer.printWithoutSpace("mqttclient_connect(&" + method.expression.getText() + ");");
+            v.printer.printWithoutSpace("mqttclient_connect(&" + method.expression.getText() + ")");
             break;
         }
         case "publish": {
-            v.printer.printWithoutSpace("mqttclient_publish(&" + method.expression.getText() + ");");
+            v.printer.printWithoutSpace("mqttclient_publish(&" + method.expression.getText() + ")");
             break;
         }
         case "subscribe": {
-            v.printer.printWithoutSpace("mqttclient_subscribe(&" + method.expression.getText() + ");");
+            v.printer.printWithoutSpace("mqttclient_subscribe(&" + method.expression.getText() + ")");
             break;
         }
         case "wait": {
-            v.printer.printWithoutSpace("mqttclient_wait(&" + method.expression.getText() + ");");
+            v.printer.printWithoutSpace("mqttclient_wait(&" + method.expression.getText() + ")");
             break;
         }
         case "ping": {
-            v.printer.printWithoutSpace("mqttclient_ping(&" + method.expression.getText() + ");");
+            v.printer.printWithoutSpace("mqttclient_ping(&" + method.expression.getText() + ")");
             break;
         }
         default: {

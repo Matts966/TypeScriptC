@@ -85,7 +85,9 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     v.useLineBuffer = true
                     v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
                     v.printer.printLn("tm_getline(line);")
-                    v.printer.print("char* " + d.name.getText() + " = line")
+                    v.printer.printLn("char " + d.name.getText() + "[sizeof line];")
+                    v.printer.printLn("strncpy(" + d.name.getText() + ", line, sizeof line);")
+                    v.printer.print(d.name.getText() + "[sizeof line - 1] = '\\0'")
                     return
                 }
             }

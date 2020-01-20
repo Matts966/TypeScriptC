@@ -5,7 +5,7 @@
 #include "examples/mqttnet.h"
 #include "examples/mqttclient/mqttclient.h"
 
-char* line;
+char line[16];
 
 typedef enum { TASK_MQTT_SHELL, OBJ_KIND_NUM } OBJ_KIND;
 EXPORT ID ObjID[OBJ_KIND_NUM];
@@ -27,31 +27,37 @@ EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 		char c = tm_getchar(TMO_FEVR);
 		tm_putstring("\n");
 		if ( c == 'c' ) {
-			result = mqttclient_connect(&client);;
+			result = mqttclient_connect(&client);
 		}
 		if ( c == 'p' ) {
 			tm_putstring("topic: ");
 			tm_getline(line);
-			char* topic = line;
+			char topic[sizeof line];
+			strncpy(topic, line, sizeof line);
+			topic[sizeof line - 1] = '\0';
 			client.topic_name = topic;
 			tm_putstring("message: ");
 			tm_getline(line);
-			char* message = line;
+			char message[sizeof line];
+			strncpy(message, line, sizeof line);
+			message[sizeof line - 1] = '\0';
 			client.publish.buffer = message;
-			result = mqttclient_publish(&client);;
+			result = mqttclient_publish(&client);
 		}
 		if ( c == 's' ) {
 			tm_putstring("topic: ");
 			tm_getline(line);
-			char* topic = line;
+			char topic[sizeof line];
+			strncpy(topic, line, sizeof line);
+			topic[sizeof line - 1] = '\0';
 			client.topic_name = topic;
-			result = mqttclient_subscribe(&client);;
+			result = mqttclient_subscribe(&client);
 		}
 		if ( c == 'w' ) {
-			result = mqttclient_wait(&client);;
+			result = mqttclient_wait(&client);
 		}
 		if ( c == 'k' ) {
-			result = mqttclient_ping(&client);;
+			result = mqttclient_ping(&client);
 		}
 		if ( result != MQTT_CODE_SUCCESS ) {
 			break;

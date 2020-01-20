@@ -118,7 +118,7 @@ export class visitor {
 
         if (this.useLineBuffer) {
             const psp = new p.StdOutPrinter
-            psp.printLn("char* line;")
+            psp.printLn("char line[16];")
             psp.printLn("")
         }
 
