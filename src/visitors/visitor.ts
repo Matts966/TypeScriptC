@@ -73,7 +73,7 @@ export class visitor {
         this.printer = new p.StdOutPrinter
 
         this.taskNames = this.tasks.map((m) => {
-            return util.getTypeString(m.parent, this.checker)
+            return util.getTypeStringInSnakeCase(m.parent, this.checker)
         })
 
         this.printer.printLn("typedef enum { "
@@ -93,7 +93,7 @@ export class visitor {
                 this.printer.printLn("UB __" + this.taskNames[index] + "_buffer;")
             }
 
-            const taskSig = "EXPORT void " + util.getTypeString(m.parent, this.checker) + "(INT stacd, VP exinf)"
+            const taskSig = "EXPORT void " + util.getTypeStringInSnakeCase(m.parent, this.checker) + "(INT stacd, VP exinf)"
             this.printer.printLn(taskSig + ';')
             this.printer.print(taskSig + " ")
             if (!m.body) {

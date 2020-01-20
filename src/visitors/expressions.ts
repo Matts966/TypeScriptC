@@ -21,6 +21,11 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         v.printer.printWithoutSpace(expression.text)
         return
     }
+    // TODO: Should handle char type but literal has its own type
+    // if (ts.isStringLiteral(expression)) {
+    //     v.printer.printWithoutSpace(expression.text)
+    //     return
+    // }
     if (ts.isCallExpression(expression)) {
         switch (expression.expression.getText()) {
             case "console.log":
@@ -52,6 +57,11 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
             // TODO: handle arguements
             default:
                 if (ts.isPropertyAccessExpression(expression.expression)) {
+
+                    if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
+                        handleMQTTClientMethod()
+                    }
+
                     // TODO: add util for type checker
                     let type = v.checker.getTypeAtLocation(expression.expression.expression)
 
@@ -66,79 +76,13 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                         process.exit(1)
                     }
                     if (v.checker.typeToString(baseType![0]) == "Task") {
-                        if (expression.expression.name.getText() == "start") {
-                            const typeName = v.checker.typeToString(type)
-                            v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ")
-                            let argNum = 0
-                            for (const arg of expression.arguments) {
-                                if (argNum != 0) {
-                                    diag.emitDiagnostic(expression, "invalid argument in task.start")
-                                    process.exit(1)
-                                }
-                                visitExpression(arg, v)
-                                ++argNum
-                            }
-                            v.printer.printWithoutSpace(" )")
-                        } else if (expression.expression.name.getText() == "wakeUp") {
-                            const typeName = v.checker.typeToString(type)
-                            v.printer.print("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )")
-                        } else if (expression.expression.name.getText() == "sleep") {
-                            v.printer.print("tk_slp_tsk( ")
-                            let argNum = 0
-                            for (const arg of expression.arguments) {
-                                if (argNum != 0) {
-                                    diag.emitDiagnostic(expression, "invalid argument in task.start")
-                                    process.exit(1)
-                                }
-                                visitExpression(arg, v)
-                                ++argNum
-                            }
-                            v.printer.printWithoutSpace(" )")
-                        } else if (expression.expression.name.getText() == "receive") {
-                            // receiver type name
-                            const typeName = v.checker.typeToString(type)
-                            const taskName = v.taskNames[v.nowProcessingTaskIndex]
-                            const bufferName = "__" + taskName
-                                + "_buffer"
-                            v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
-                                + util.camelToSnake(typeName, true)
-                                + "], &" + bufferName
-                                + ", ")
-                            let argNum = 0
-                            for (const arg of expression.arguments) {
-                                if (argNum > 0) {
-                                    diag.emitDiagnostic(expression, "invalid argument in task.start")
-                                    process.exit(1)
-                                }
-                                visitExpression(arg, v)
-                                ++argNum
-                            }
-                            v.printer.printWithoutSpace(" )")
-                        } else if (expression.expression.name.getText() == "send") {
-                            // receiver type name
-                            const typeName = v.checker.typeToString(type)
-                            const taskName = v.taskNames[v.nowProcessingTaskIndex]
-                            const bufferName = "__" + taskName
-                                + "_buffer"
-                            v.printer.print("tk_snd_mbf( ObjID[MBUF_"
-                                + util.camelToSnake(typeName, true)
-                                + "], &" + bufferName + ", sizeof " + bufferName + ", ")
-                            let argNum = 0
-                            for (const arg of expression.arguments) {
-                                if (argNum > 0) {
-                                    diag.emitDiagnostic(expression, "invalid argument in task.start")
-                                    process.exit(1)
-                                }
-                                visitExpression(arg, v)
-                                ++argNum
-                            }
-                            v.printer.printWithoutSpace(" )")
-                        } else {
-                            diag.emitDiagnostic(expression, "PropertyAccessExpression: don't know how to handle " + expression.expression.name.getText())
-                            process.exit(1)
-                        }
+                        handleTaskMethod(expression.expression,
+                            expression.arguments,
+                            v.checker.typeToString(type),
+                            v
+                        )
                     } else {
-                        diag.emitDiagnostic(expression, "don't know how to handle " + v.checker.typeToString(type))
+                        diag.emitDiagnostic(expression, "PropertyAccessExpression: don't know how to handle " + v.checker.typeToString(type))
                         process.exit(1)
                     }
                     return
@@ -177,6 +121,79 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         return
     }
     v.printer.printWithoutSpace(expression.getText())
+}
+
+const handleMQTTClientMethod = () => {
+
+}
+
+const handleTaskMethod = (method : ts.PropertyAccessExpression, args : ts.NodeArray<ts.Expression>, typeName : string, v : visitor) => {
+    if (method.name.getText() == "start") {
+        v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ")
+        let argNum = 0
+        for (const arg of args) {
+            if (argNum != 0) {
+                diag.emitDiagnostic(arg, "invalid argument in task.start")
+                process.exit(1)
+            }
+            visitExpression(arg, v)
+            ++argNum
+        }
+        v.printer.printWithoutSpace(" )")
+    } else if (method.name.getText() == "wakeUp") {
+        v.printer.print("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )")
+    } else if (method.name.getText() == "sleep") {
+        v.printer.print("tk_slp_tsk( ")
+        let argNum = 0
+        for (const arg of args) {
+            if (argNum != 0) {
+                diag.emitDiagnostic(arg, "invalid argument in task.start")
+                process.exit(1)
+            }
+            visitExpression(arg, v)
+            ++argNum
+        }
+        v.printer.printWithoutSpace(" )")
+    } else if (method.name.getText() == "receive") {
+        const taskName = v.taskNames[v.nowProcessingTaskIndex]
+        const bufferName = "__" + taskName
+            + "_buffer"
+        v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
+            + util.camelToSnake(typeName, true)
+            + "], &" + bufferName
+            + ", ")
+        let argNum = 0
+        for (const arg of args) {
+            if (argNum > 0) {
+                diag.emitDiagnostic(arg, "invalid argument in task.start")
+                process.exit(1)
+            }
+            visitExpression(arg, v)
+            ++argNum
+        }
+        v.printer.printWithoutSpace(" )")
+    } else if (method.name.getText() == "send") {
+        // receiver type name
+        const taskName = v.taskNames[v.nowProcessingTaskIndex]
+        const bufferName = "__" + taskName
+            + "_buffer"
+        v.printer.print("tk_snd_mbf( ObjID[MBUF_"
+            + util.camelToSnake(typeName, true)
+            + "], &" + bufferName + ", sizeof " + bufferName + ", ")
+        let argNum = 0
+        for (const arg of args) {
+            if (argNum > 0) {
+                diag.emitDiagnostic(arg, "invalid argument in task.start")
+                process.exit(1)
+            }
+            visitExpression(arg, v)
+            ++argNum
+        }
+        v.printer.printWithoutSpace(" )")
+    } else {
+        diag.emitDiagnostic(method, "don't know how to handle task method" + method.name.getText())
+        process.exit(1)
+    }
 }
 
 export const handleClassMembers = (members : ts.NodeArray<ts.ClassElement>, v : visitor) => {

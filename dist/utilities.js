@@ -17,7 +17,7 @@ exports.camelToSnake = (s, big = false) => {
     }
     return snake;
 };
-exports.getTypeString = (node, checker) => {
+exports.getTypeStringInSnakeCase = (node, checker) => {
     const type = checker.getTypeAtLocation(node);
     const typeName = checker.typeToString(type);
     const splited = typeName.split(" ");
@@ -25,6 +25,10 @@ exports.getTypeString = (node, checker) => {
         return exports.camelToSnake(splited[1]);
     }
     return exports.camelToSnake(typeName);
+};
+exports.getTypeString = (node, checker) => {
+    const type = checker.getTypeAtLocation(node);
+    return checker.typeToString(type);
 };
 exports.getProgramFromArgV = () => {
     let fileNames = process.argv.slice(2);

@@ -25,7 +25,6 @@ exports.visitExpressionStatement = (expressionStatement, v) => {
     v.printer.printWithoutSpace(";\n");
 };
 exports.visitVariableStatement = (variableStatement, v) => {
-    typescript_1.default.isPropertyAssignment;
     exports.visitVariableDeclarationList(variableStatement.declarationList, v);
 };
 exports.visitVariableDeclarationList = (variableDeclarationList, v) => {

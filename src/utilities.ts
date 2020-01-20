@@ -14,7 +14,7 @@ export const camelToSnake = (s : string, big : boolean = false) => {
     return snake
 }
 
-export const getTypeString = (node : ts.Node, checker : ts.TypeChecker) => {
+export const getTypeStringInSnakeCase = (node : ts.Node, checker : ts.TypeChecker) => {
     const type = checker.getTypeAtLocation(node)
     const typeName = checker.typeToString(type)
     const splited = typeName.split(" ")
@@ -22,6 +22,11 @@ export const getTypeString = (node : ts.Node, checker : ts.TypeChecker) => {
         return camelToSnake(splited[1])
     }
     return camelToSnake(typeName)
+}
+
+export const getTypeString = (node : ts.Node, checker : ts.TypeChecker) => {
+    const type = checker.getTypeAtLocation(node)
+    return checker.typeToString(type)
 }
 
 export const getProgramFromArgV = () => {

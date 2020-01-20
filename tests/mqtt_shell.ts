@@ -14,21 +14,21 @@ const taskMqttShell = new class TaskMqttShell extends tkernel.Task {
             console.log("- Push s to subscribe to a topic.")
             console.log("- Push w to wait messages.")
             const c = tkernel.ask("- Push k to keep connection.")
-            if (c == "c") {
+            if (c == 'c') {
                 result = client.connect()
-            } else if (c == "p") {
+            } else if (c == 'p') {
                 let topic = tkernel.ask_line("topic: ")
                 client.topic = topic
                 let message = tkernel.ask_line("message: ")
                 client.message = message
                 result = client.publish()
-            } else if (c == "s") {
+            } else if (c == 's') {
                 let topic = tkernel.ask_line("topic: ")
                 client.topic = topic
                 result = client.subscribe()
-            } else if (c == "w") {
+            } else if (c == 'w') {
                 result = client.wait()
-            } else if (c == "k") {
+            } else if (c == 'k') {
                 result = client.ping()
             }
 
