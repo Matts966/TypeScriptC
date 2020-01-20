@@ -33,7 +33,7 @@ EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 			tm_putstring("topic: ");
 			tm_getline(line);
 			char* topic = line;
-			client.topic = topic;
+			client.topic_name = topic;
 			tm_putstring("message: ");
 			tm_getline(line);
 			char* message = line;
@@ -44,7 +44,7 @@ EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 			tm_putstring("topic: ");
 			tm_getline(line);
 			char* topic = line;
-			client.topic = topic;
+			client.topic_name = topic;
 			result = mqttclient_subscribe(&client);;
 		}
 		if ( c == 'w' ) {
@@ -86,7 +86,7 @@ EXPORT INT usermain( void ) {
 	tm_putstring("*** task_mqtt_shell created.\n");
 	while ( 1 ) {
 		tk_sta_tsk( ObjID[TASK_MQTT_SHELL], 0 );
-		tk_slp_tsk(TMO_FEVR);
+		tk_slp_tsk( TMO_FEVR );
 		tm_putstring(" *** MQTT shell disconnected... Reseted context.\n");
 	}
 }

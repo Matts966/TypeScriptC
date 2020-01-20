@@ -2,7 +2,7 @@ export class MQTTClient {
     host : string
     port : number
     qos : number
-    topic : string
+    topic_name : string
     message : string
     public connect() { return result.success }
     public publish() { return result.success }
@@ -13,7 +13,7 @@ export class MQTTClient {
         this.host = ""
         this.port = 0
         this.qos = 0
-        this.topic = ""
+        this.topic_name = ""
         this.message = ""
     }
 }

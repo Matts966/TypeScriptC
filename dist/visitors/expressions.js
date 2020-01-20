@@ -62,9 +62,9 @@ exports.visitExpression = (expression, v) => {
                 return;
             // TODO: check if not in task (in other words the context is entry task)
             case "tkernel.sleep":
-                v.printer.printWithoutSpace("tk_slp_tsk(");
+                v.printer.printWithoutSpace("tk_slp_tsk( ");
                 exports.visitExpression(expression.arguments[0], v);
-                v.printer.printWithoutSpace(")");
+                v.printer.printWithoutSpace(" )");
                 return;
             // TODO: handle arguements
             default:

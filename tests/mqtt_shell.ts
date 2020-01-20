@@ -19,14 +19,14 @@ const taskMqttShell = new class TaskMqttShell extends tkernel.Task {
             }
             if (c == 'p') {
                 let topic = tkernel.ask_line("topic: ")
-                client.topic = topic
+                client.topic_name = topic
                 let message = tkernel.ask_line("message: ")
                 client.message = message
                 result = client.publish()
             }
             if (c == 's') {
                 let topic = tkernel.ask_line("topic: ")
-                client.topic = topic
+                client.topic_name = topic
                 result = client.subscribe()
             }
             if (c == 'w') {
