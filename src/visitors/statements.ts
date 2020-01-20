@@ -17,7 +17,9 @@ export const visitExpressionStatement = (expressionStatement : ts.ExpressionStat
 }
 
 export const visitVariableStatement = (variableStatement : ts.VariableStatement, v : visitor) => {
+    v.printer.print("")
     visitVariableDeclarationList(variableStatement.declarationList, v)
+    v.printer.printWithoutSpace(";\n")
 }
 
 export const visitVariableDeclarationList = (variableDeclarationList : ts.VariableDeclarationList, v : visitor) => {
@@ -33,6 +35,17 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText())
             return
+        }
+
+        if (ts.isPropertyAccessExpression(expr)) {
+            if (util.getTypeString(expr, v.checker) == "result") {
+                switch (expr.getText()) {
+                    case "mqtt.result.success": {
+                        v.printer.printWithoutSpace("int " + d.name.getText() + " = MQTT_CODE_SUCCESS;")
+                        return
+                    }
+                }
+            }
         }
 
         if (ts.isNewExpression(expr)) {
@@ -59,8 +72,8 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             }
         }
 
-        diag.emitDiagnostic(d, "don't know handle the declaration " + d.getText())
-        diag.emitDiagnostic(d, "Syntax kind: " + ts.SyntaxKind[d.kind])
+        diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText())
+        diag.emitDiagnostic(d, "Syntax kind: " + ts.SyntaxKind[expr.kind])
         process.exit(1)
     }
 }
@@ -91,13 +104,13 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
     taskIdent : ts.Identifier, v : visitor) => {
     let messageBoxCount = 0
     if (!newExpr.arguments) {
-        v.printer.printLn("t_ctsk.stksz = 1024;")
+        v.printer.printWithoutSpace("t_ctsk.stksz = 1024;\n")
         v.printer.printLn("t_ctsk.itskpri = 1;")
     } else {
         let argNum = 0
         for (const arg of newExpr.arguments) {
             if (argNum == 0) {
-                v.printer.print("t_ctsk.itskpri = ")
+                v.printer.printWithoutSpace("t_ctsk.itskpri = ")
                 expressions.visitExpression(arg, v)
                 v.printer.printWithoutSpace(";\n")
             } else if (argNum == 1) {
@@ -119,11 +132,11 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
             ++argNum
         }
         if (argNum == 0) {
-            v.printer.printLn("t_ctsk.stksz = 1024;")
+            v.printer.printWithoutSpace("t_ctsk.stksz = 1024;\n")
             v.printer.printLn("t_ctsk.itskpri = 1;")
         }
         if (argNum == 1) {
-            v.printer.printLn("t_ctsk.stksz = 1024;")
+            v.printer.print("t_ctsk.stksz = 1024;\n")
         }
     }
 
@@ -138,22 +151,23 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
     v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");")
     v.printer.printLn("return 1;")
     v.printer.unindent().printLn("}")
-    v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
     if (messageBoxCount > 0) {
+        v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;")
         v.useMessageBox.push(true)
         v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";")
         v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {")
         v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");")
         v.printer.printLn("return 1;")
         v.printer.unindent().printLn("}")
-        v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;")
+        v.printer.print("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid")
     } else {
+        v.printer.print("ObjID[" + taskName.toUpperCase() + "] = objid")
         v.useMessageBox.push(false)
     }
 }
 const handleMQTTClientDeclaration = (d : ts.VariableDeclaration, v : visitor) => {
-    v.printer.printLn("MQTTCtx " + d.name.getText() + ";")
-    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ");")
+    v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n")
+    v.printer.print("mqtt_init_ctx(&" + d.name.getText() + ")")
 }
 export const visitStatement = (statement : ts.Statement, v : visitor) => {
     if (ts.isExpressionStatement(statement)) {

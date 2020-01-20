@@ -124,7 +124,7 @@ exports.visitExpression = (expression, v) => {
         v.printer.printWithoutSpace(expression.getText());
         return;
     }
-    diag.emitDiagnostic(expression, "don't know handle the expression " + expression.getText());
+    diag.emitDiagnostic(expression, "don't know how to handle the expression " + expression.getText());
     diag.emitDiagnostic(expression, "Syntax kind: " + typescript_1.default.SyntaxKind[expression.kind]);
     process.exit(1);
 };

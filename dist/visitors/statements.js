@@ -26,7 +26,9 @@ exports.visitExpressionStatement = (expressionStatement, v) => {
     v.printer.printWithoutSpace(";\n");
 };
 exports.visitVariableStatement = (variableStatement, v) => {
+    v.printer.print("");
     exports.visitVariableDeclarationList(variableStatement.declarationList, v);
+    v.printer.printWithoutSpace(";\n");
 };
 exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
     for (const d of variableDeclarationList.declarations) {
@@ -39,6 +41,16 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText());
             return;
+        }
+        if (typescript_1.default.isPropertyAccessExpression(expr)) {
+            if (util.getTypeString(expr, v.checker) == "result") {
+                switch (expr.getText()) {
+                    case "mqtt.result.success": {
+                        v.printer.printWithoutSpace("int " + d.name.getText() + " = MQTT_CODE_SUCCESS;");
+                        return;
+                    }
+                }
+            }
         }
         if (typescript_1.default.isNewExpression(expr)) {
             if (typescript_1.default.isClassExpression(expr.expression)) {
@@ -63,6 +75,9 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                 continue;
             }
         }
+        diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText());
+        diag.emitDiagnostic(d, "Syntax kind: " + typescript_1.default.SyntaxKind[expr.kind]);
+        process.exit(1);
     }
 };
 const isMQTTClient = (location, v) => {
@@ -92,14 +107,14 @@ const isTask = (location, v) => {
 const handleTaskInitialization = (newExpr, taskIdent, v) => {
     let messageBoxCount = 0;
     if (!newExpr.arguments) {
-        v.printer.printLn("t_ctsk.stksz = 1024;");
+        v.printer.printWithoutSpace("t_ctsk.stksz = 1024;\n");
         v.printer.printLn("t_ctsk.itskpri = 1;");
     }
     else {
         let argNum = 0;
         for (const arg of newExpr.arguments) {
             if (argNum == 0) {
-                v.printer.print("t_ctsk.itskpri = ");
+                v.printer.printWithoutSpace("t_ctsk.itskpri = ");
                 expressions.visitExpression(arg, v);
                 v.printer.printWithoutSpace(";\n");
             }
@@ -125,11 +140,11 @@ const handleTaskInitialization = (newExpr, taskIdent, v) => {
             ++argNum;
         }
         if (argNum == 0) {
-            v.printer.printLn("t_ctsk.stksz = 1024;");
+            v.printer.printWithoutSpace("t_ctsk.stksz = 1024;\n");
             v.printer.printLn("t_ctsk.itskpri = 1;");
         }
         if (argNum == 1) {
-            v.printer.printLn("t_ctsk.stksz = 1024;");
+            v.printer.print("t_ctsk.stksz = 1024;\n");
         }
     }
     if (!taskIdent) {
@@ -143,23 +158,24 @@ const handleTaskInitialization = (newExpr, taskIdent, v) => {
     v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of " + taskName + ".\\n\");");
     v.printer.printLn("return 1;");
     v.printer.unindent().printLn("}");
-    v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
     if (messageBoxCount > 0) {
+        v.printer.printLn("ObjID[" + taskName.toUpperCase() + "] = objid;");
         v.useMessageBox.push(true);
         v.printer.printLn("cmbf.maxmsz = " + messageBoxCount.toString() + ";");
         v.printer.printLn("if ( (objid = tk_cre_mbf( &cmbf )) <= E_OK ) {");
         v.printer.indent().printLn("tm_putstring(\" *** Failed in the creation of messsage box of" + taskName + ".\\n\");");
         v.printer.printLn("return 1;");
         v.printer.unindent().printLn("}");
-        v.printer.printLn("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid;");
+        v.printer.print("ObjID[MBUF_" + taskName.toUpperCase() + "] = objid");
     }
     else {
+        v.printer.print("ObjID[" + taskName.toUpperCase() + "] = objid");
         v.useMessageBox.push(false);
     }
 };
 const handleMQTTClientDeclaration = (d, v) => {
-    v.printer.printLn("MQTTCtx " + d.name.getText() + ";");
-    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ");");
+    v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n");
+    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ")");
 };
 exports.visitStatement = (statement, v) => {
     if (typescript_1.default.isExpressionStatement(statement)) {
