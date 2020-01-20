@@ -51,9 +51,3 @@ while (true) {
     tkernel.sleep(tkernel.waitType.forever)
     console.log(" *** MQTT shell disconnected... Reseted context.")
 }
-
-
-// Network initialization
-// NetDrv(0, NULL);
-// so_main(0, NULL);
-// net_conf(NET_CONF_EMULATOR, NET_CONF_DHCP);
