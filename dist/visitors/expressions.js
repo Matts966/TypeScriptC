@@ -64,7 +64,7 @@ exports.visitExpression = (expression, v) => {
             default:
                 if (typescript_1.default.isPropertyAccessExpression(expression.expression)) {
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
-                        handleMQTTClientMethod(expression.expression.name.getText());
+                        handleMQTTClientMethod(expression.expression, v);
                     }
                     // TODO: add util for type checker
                     let type = v.checker.getTypeAtLocation(expression.expression.expression);
@@ -117,8 +117,32 @@ exports.visitExpression = (expression, v) => {
     }
     v.printer.printWithoutSpace(expression.getText());
 };
-const handleMQTTClientMethod = (methodName) => {
-    switch (methodName) {
+const handleMQTTClientMethod = (method, v) => {
+    switch (method.name.getText()) {
+        case "connect": {
+            v.printer.printLn("mqttclient_connect(&" + method.expression.getText() + ");");
+            break;
+        }
+        case "publish": {
+            v.printer.printLn("mqttclient_publish(&" + method.expression.getText() + ");");
+            break;
+        }
+        case "subscribe": {
+            v.printer.printLn("mqttclient_subscribe(&" + method.expression.getText() + ");");
+            break;
+        }
+        case "wait": {
+            v.printer.printLn("mqttclient_wait(&" + method.expression.getText() + ");");
+            break;
+        }
+        case "ping": {
+            v.printer.printLn("mqttclient_ping(&" + method.expression.getText() + ");");
+            break;
+        }
+        default: {
+            diag.emitDiagnostic(method, "don't know how to handle MQTTClient method" + method.name.getText());
+            process.exit(1);
+        }
     }
 };
 const handleTaskMethod = (method, args, typeName, v) => {

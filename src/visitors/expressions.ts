@@ -59,7 +59,7 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                 if (ts.isPropertyAccessExpression(expression.expression)) {
 
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
-                        handleMQTTClientMethod(expression.expression.name.getText())
+                        handleMQTTClientMethod(expression.expression, v)
                     }
 
                     // TODO: add util for type checker
@@ -123,16 +123,39 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
     v.printer.printWithoutSpace(expression.getText())
 }
 
-const handleMQTTClientMethod = (methodName : string) => {
-    switch (methodName) {
-
+const handleMQTTClientMethod = (method : ts.PropertyAccessExpression, v : visitor) => {
+    switch (method.name.getText()) {
+        case "connect": {
+            v.printer.printLn("mqttclient_connect(&" + method.expression.getText() + ");")
+            break
+        }
+        case "publish": {
+            v.printer.printLn("mqttclient_publish(&" + method.expression.getText() + ");")
+            break
+        }
+        case "subscribe": {
+            v.printer.printLn("mqttclient_subscribe(&" + method.expression.getText() + ");")
+            break
+        }
+        case "wait": {
+            v.printer.printLn("mqttclient_wait(&" + method.expression.getText() + ");")
+            break
+        }
+        case "ping": {
+            v.printer.printLn("mqttclient_ping(&" + method.expression.getText() + ");")
+            break
+        }
+        default: {
+            diag.emitDiagnostic(method, "don't know how to handle MQTTClient method" + method.name.getText())
+            process.exit(1)
+        }
     }
 }
 
-const handleTaskMethod = (method : ts.PropertyAccessExpression, 
-        args : ts.NodeArray<ts.Expression>, 
-        typeName : string, v : visitor) => {
-    switch(method.name.getText()) {
+const handleTaskMethod = (method : ts.PropertyAccessExpression,
+    args : ts.NodeArray<ts.Expression>,
+    typeName : string, v : visitor) => {
+    switch (method.name.getText()) {
         case "start": {
             v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ")
             let argNum = 0
@@ -208,7 +231,7 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
         default: {
             diag.emitDiagnostic(method, "don't know how to handle task method" + method.name.getText())
             process.exit(1)
-        } 
+        }
     }
 }
 
