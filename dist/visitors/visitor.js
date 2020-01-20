@@ -18,6 +18,7 @@ const p = __importStar(require("../printer"));
 const util = __importStar(require("../utilities"));
 class visitor {
     constructor(printer, checker) {
+        this.useLineBuffer = false;
         this.visit = (node) => {
             if (node.kind == typescript_1.default.SyntaxKind.EndOfFileToken) {
                 return;
@@ -71,6 +72,10 @@ class visitor {
                 + "OBJ_KIND_NUM } OBJ_KIND;");
             this.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];");
             this.printer.printLn("");
+            if (this.useLineBuffer) {
+                this.printer.printLn("char* line;");
+                this.printer.printLn("");
+            }
             this.tasks.forEach((m, index) => {
                 this.nowProcessingTaskIndex = index;
                 // Define buffer for the message buffer

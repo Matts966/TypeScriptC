@@ -69,6 +69,7 @@ exports.visitExpression = (expression, v) => {
                 if (typescript_1.default.isPropertyAccessExpression(expression.expression)) {
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
                         handleMQTTClientMethod(expression.expression, v);
+                        return;
                     }
                     // TODO: add util for type checker
                     let type = v.checker.getTypeAtLocation(expression.expression.expression);

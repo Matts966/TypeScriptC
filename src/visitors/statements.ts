@@ -73,11 +73,20 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
         }
 
         if (ts.isCallExpression(expr)) {
-            if (expr.expression.getText() == "tkernel.ask") {
-                v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
-                v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);")
-                v.printer.print("tm_putstring(\"\\n\")")
-                return
+            switch (expr.expression.getText()) {
+                case "tkernel.ask": {
+                    v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
+                    v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);")
+                    v.printer.print("tm_putstring(\"\\n\")")
+                    return
+                }
+                case "tkernel.ask_line": {
+                    v.useLineBuffer = true
+                    v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
+                    v.printer.printLn("tm_getline(line);")
+                    v.printer.print(d.name.getText() + " = line")
+                    return
+                }
             }
         }
 

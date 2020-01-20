@@ -11,6 +11,7 @@ export class visitor {
     tasks : ts.MethodDeclaration[]
     taskNames : string[]
     useMessageBox : boolean[]
+    useLineBuffer : boolean = false
     nowProcessingTaskIndex : number
     private includes : string[]
 
@@ -85,6 +86,12 @@ export class visitor {
 
         this.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
         this.printer.printLn("")
+
+        if (this.useLineBuffer) {
+            this.printer.printLn("char* line;")
+            this.printer.printLn("")
+        }
+
         this.tasks.forEach((m, index) => {
             this.nowProcessingTaskIndex = index
 
