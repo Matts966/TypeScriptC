@@ -21,6 +21,7 @@ exports.isStatement = (node) => {
     return false;
 };
 exports.visitExpressionStatement = (expressionStatement, v) => {
+    v.printer.print("");
     expressions.visitExpression(expressionStatement.expression, v);
     v.printer.printWithoutSpace(";\n");
 };

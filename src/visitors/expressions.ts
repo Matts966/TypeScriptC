@@ -22,15 +22,19 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         return
     }
     // TODO: Should handle char type but literal has its own type
-    // if (ts.isStringLiteral(expression)) {
-    //     v.printer.printWithoutSpace(expression.text)
-    //     return
-    // }
+    if (ts.isStringLiteral(expression)) {
+        v.printer.printWithoutSpace(expression.getText())
+        return
+    }
+    if (ts.isIdentifier(expression)) {
+        v.printer.printWithoutSpace(expression.text)
+        return
+    }
     if (ts.isCallExpression(expression)) {
         switch (expression.expression.getText()) {
             case "console.log":
                 // TODO: safer handling
-                v.printer.print("tm_putstring(\"" + expression.arguments.map((e) => {
+                v.printer.printWithoutSpace("tm_putstring(\"" + expression.arguments.map((e) => {
                     if (ts.isLiteralExpression(e))
                         return e.text.split('').map((c) => {
                             const cc = c.charCodeAt(0)
@@ -44,15 +48,15 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                 }) + "\\n\")")
                 return
             case "process.exit":
-                v.printer.print("return " + expression.arguments[0].getText())
+                v.printer.printWithoutSpace("return " + expression.arguments[0].getText())
                 return
             case "tkernel.ask":
-                v.printer.printLn("tm_putstring((UB*)" + expression.arguments[0].getText() + ");")
+                v.printer.printWithoutSpace("tm_putstring((UB*)" + expression.arguments[0].getText() + ");\n")
                 v.printer.print("tm_getchar(-1)")
                 return
             // TODO: check if not in task (in other words the context is entry task)
             case "tkernel.sleep":
-                v.printer.printLn("tk_slp_tsk(" + visitExpression(expression.arguments[0], v) + ");")
+                v.printer.printWithoutSpace("tk_slp_tsk(" + visitExpression(expression.arguments[0], v) + ");")
                 return
             // TODO: handle arguements
             default:
@@ -91,11 +95,11 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                 // TODO: check this is needed
                 // Maybe for the nodes without pos because of syntesis such as tk_ext_tsk.
                 if (ts.isIdentifier(expression.expression)) {
-                    v.printer.print(expression.expression.text + "()")
+                    v.printer.printWithoutSpace(expression.expression.text + "()")
                     return
                 }
 
-                v.printer.print(expression.expression.getText() + "()")
+                v.printer.printWithoutSpace(expression.expression.getText() + "()")
         }
 
         // TODO: Add type map
@@ -120,29 +124,36 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         v.printer.printWithoutSpace("TMO_FEVR")
         return
     }
-    v.printer.printWithoutSpace(expression.getText())
+    if (ts.isPropertyAccessExpression(expression)
+        || ts.isPostfixUnaryExpression(expression)) {
+        v.printer.printWithoutSpace(expression.getText())
+        return
+    }
+    diag.emitDiagnostic(expression, "don't know handle the expression " + expression.getText())
+    diag.emitDiagnostic(expression, "Syntax kind: " + ts.SyntaxKind[expression.kind])
+    process.exit(1)
 }
 
 const handleMQTTClientMethod = (method : ts.PropertyAccessExpression, v : visitor) => {
     switch (method.name.getText()) {
         case "connect": {
-            v.printer.printLn("mqttclient_connect(&" + method.expression.getText() + ");")
+            v.printer.printWithoutSpace("mqttclient_connect(&" + method.expression.getText() + ");")
             break
         }
         case "publish": {
-            v.printer.printLn("mqttclient_publish(&" + method.expression.getText() + ");")
+            v.printer.printWithoutSpace("mqttclient_publish(&" + method.expression.getText() + ");")
             break
         }
         case "subscribe": {
-            v.printer.printLn("mqttclient_subscribe(&" + method.expression.getText() + ");")
+            v.printer.printWithoutSpace("mqttclient_subscribe(&" + method.expression.getText() + ");")
             break
         }
         case "wait": {
-            v.printer.printLn("mqttclient_wait(&" + method.expression.getText() + ");")
+            v.printer.printWithoutSpace("mqttclient_wait(&" + method.expression.getText() + ");")
             break
         }
         case "ping": {
-            v.printer.printLn("mqttclient_ping(&" + method.expression.getText() + ");")
+            v.printer.printWithoutSpace("mqttclient_ping(&" + method.expression.getText() + ");")
             break
         }
         default: {
@@ -157,7 +168,7 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
     typeName : string, v : visitor) => {
     switch (method.name.getText()) {
         case "start": {
-            v.printer.print("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ")
+            v.printer.printWithoutSpace("tk_sta_tsk( ObjID[" + util.camelToSnake(typeName, true) + "], ")
             let argNum = 0
             for (const arg of args) {
                 if (argNum != 0) {
@@ -171,11 +182,11 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
             break
         }
         case "wakeUp": {
-            v.printer.print("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )")
+            v.printer.printWithoutSpace("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )")
             break
         }
         case "sleep": {
-            v.printer.print("tk_slp_tsk( ")
+            v.printer.printWithoutSpace("tk_slp_tsk( ")
             let argNum = 0
             for (const arg of args) {
                 if (argNum != 0) {
@@ -192,7 +203,7 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
             const taskName = v.taskNames[v.nowProcessingTaskIndex]
             const bufferName = "__" + taskName
                 + "_buffer"
-            v.printer.print("tk_rcv_mbf( ObjID[MBUF_"
+            v.printer.printWithoutSpace("tk_rcv_mbf( ObjID[MBUF_"
                 + util.camelToSnake(typeName, true)
                 + "], &" + bufferName
                 + ", ")
@@ -213,7 +224,7 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
             const taskName = v.taskNames[v.nowProcessingTaskIndex]
             const bufferName = "__" + taskName
                 + "_buffer"
-            v.printer.print("tk_snd_mbf( ObjID[MBUF_"
+            v.printer.printWithoutSpace("tk_snd_mbf( ObjID[MBUF_"
                 + util.camelToSnake(typeName, true)
                 + "], &" + bufferName + ", sizeof " + bufferName + ", ")
             let argNum = 0

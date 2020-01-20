@@ -11,6 +11,7 @@ export const isStatement = (node : ts.Node) : node is ts.Statement => {
     return false
 }
 export const visitExpressionStatement = (expressionStatement : ts.ExpressionStatement, v : visitor) => {
+    v.printer.print("")
     expressions.visitExpression(expressionStatement.expression, v)
     v.printer.printWithoutSpace(";\n")
 }
@@ -57,6 +58,10 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                 continue
             }
         }
+
+        diag.emitDiagnostic(d, "don't know handle the declaration " + d.getText())
+        diag.emitDiagnostic(d, "Syntax kind: " + ts.SyntaxKind[d.kind])
+        process.exit(1)
     }
 }
 const isMQTTClient = (location : ts.Node, v : visitor) => {
