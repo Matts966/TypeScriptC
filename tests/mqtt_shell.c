@@ -5,60 +5,60 @@
 #include "examples/mqttnet.h"
 #include "examples/mqttclient/mqttclient.h"
 
-#define NET_CONF_EMULATOR (1)
-#define NET_CONF_DHCP   (1)
+char* line;
 
 typedef enum { TASK_MQTT_SHELL, OBJ_KIND_NUM } OBJ_KIND;
 EXPORT ID ObjID[OBJ_KIND_NUM];
 
-ID parent_id;
-
-char* line;
-
 EXPORT void task_mqtt_shell(INT stacd, VP exinf);
 EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 	MQTTCtx client;
-	mqtt_init_ctx(&mqttCtx);
+	mqtt_init_ctx(&client);
 	client.host = "test.mosquitto.org";
 	client.port = 1883;
 	client.qos = 1;
-	int rc = MQTT_CODE_SUCCESS;
-
+	int result = MQTT_CODE_SUCCESS;
 	while ( 1 ) {
 		tm_putstring("- Push c to connect.\n");
 		tm_putstring("- Push p to publish a message.\n");
-		tm_putstring("- Push w to wait messages.\n");
 		tm_putstring("- Push s to subscribe to a topic.\n");
+		tm_putstring("- Push w to wait messages.\n");
 		tm_putstring("- Push k to keep connection.");
 		char c = tm_getchar(TMO_FEVR);
 		tm_putstring("\n");
-		if (c == 'p') {
+		if ( c == 'c' ) {
+			result = mqttclient_connect(&client);;
+		}
+		if ( c == 'p' ) {
 			tm_putstring("topic: ");
 			tm_getline(line);
-			client.topic_name = line;
+			char* topic = line;
+			client.topic = topic;
 			tm_putstring("message: ");
 			tm_getline(line);
-			client.publish.buffer = line;
-			rc = mqttclient_publish(&client);
-		} else if (c == 's') {
+			char* message = line;
+			client.publish.buffer = message;
+			result = mqttclient_publish(&client);;
+		}
+		if ( c == 's' ) {
 			tm_putstring("topic: ");
 			tm_getline(line);
-			client.topic_name = line;
-			rc = mqttclient_subscribe(&client);
-		} else if (c == 'w') {
-			rc = mqttclient_wait(&client);
-		} else if (c == 'k') {
-			rc = mqttclient_ping(&client);
-		} else if (c == 'c') {
-			rc = mqttclient_connect(&client);
+			char* topic = line;
+			client.topic = topic;
+			result = mqttclient_subscribe(&client);;
 		}
-
-		if (rc != MQTT_CODE_SUCCESS) {
+		if ( c == 'w' ) {
+			result = mqttclient_wait(&client);;
+		}
+		if ( c == 'k' ) {
+			result = mqttclient_ping(&client);;
+		}
+		if ( result != MQTT_CODE_SUCCESS ) {
 			break;
 		}
 	}
 	tm_putstring(" *** MQTT shell: error occured.\n");
-	tk_wup_tsk(parent_id);
+	tk_wup_tsk( 1 );
 	tk_ext_tsk();
 }
 
@@ -67,17 +67,15 @@ EXPORT INT usermain( void ) {
 	ID objid;
 	t_ctsk.tskatr = TA_HLNG | TA_DSNAME;
 
-	t_ctsk.stksz = 1024;
-	t_ctsk.itskpri = 0;
-	parent_id = tk_get_tid();
-
 	// Network initialization
+	#define NET_CONF_EMULATOR (1)
+	#define NET_CONF_DHCP   (1)
 	NetDrv(0, NULL);
 	so_main(0, NULL);
 	net_conf(NET_CONF_EMULATOR, NET_CONF_DHCP);
 
-	t_ctsk.itskpri = 1;
 	t_ctsk.stksz = 1024;
+	t_ctsk.itskpri = 1;
 	STRCPY( (char *)t_ctsk.dsname, "task_mqtt_shell");
 	t_ctsk.task = task_mqtt_shell;
 	if ( (objid = tk_cre_tsk( &t_ctsk )) <= E_OK ) {
@@ -86,10 +84,9 @@ EXPORT INT usermain( void ) {
 	}
 	ObjID[TASK_MQTT_SHELL] = objid;
 	tm_putstring("*** task_mqtt_shell created.\n");
-
 	while ( 1 ) {
 		tk_sta_tsk( ObjID[TASK_MQTT_SHELL], 0 );
-		tk_slp_tsk( TMO_FEVR );
+		tk_slp_tsk(TMO_FEVR);
 		tm_putstring(" *** MQTT shell disconnected... Reseted context.\n");
 	}
 }

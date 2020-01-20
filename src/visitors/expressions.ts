@@ -125,8 +125,18 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         v.printer.printWithoutSpace("TMO_FEVR")
         return
     }
+    if (expression.getText() == "mqtt.result.success") {
+        v.printer.printWithoutSpace("MQTT_CODE_SUCCESS")
+        return
+    }
     if (ts.isPropertyAccessExpression(expression)
         || ts.isPostfixUnaryExpression(expression)) {
+        switch (expression.getText()) {
+            case "client.message": {
+                v.printer.printWithoutSpace("client.publish.buffer")
+            }
+                return
+        }
         v.printer.printWithoutSpace(expression.getText())
         return
     }
@@ -183,6 +193,10 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
             break
         }
         case "wakeUp": {
+            if (typeName == "EntryTask") {
+                v.printer.printWithoutSpace("tk_wup_tsk( 1 )")
+                break
+            }
             v.printer.printWithoutSpace("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )")
             break
         }

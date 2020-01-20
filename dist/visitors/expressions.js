@@ -120,8 +120,19 @@ exports.visitExpression = (expression, v) => {
         v.printer.printWithoutSpace("TMO_FEVR");
         return;
     }
+    if (expression.getText() == "mqtt.result.success") {
+        v.printer.printWithoutSpace("MQTT_CODE_SUCCESS");
+        return;
+    }
     if (typescript_1.default.isPropertyAccessExpression(expression)
         || typescript_1.default.isPostfixUnaryExpression(expression)) {
+        switch (expression.getText()) {
+            case "client.message":
+                {
+                    v.printer.printWithoutSpace("client.publish.buffer");
+                }
+                return;
+        }
         v.printer.printWithoutSpace(expression.getText());
         return;
     }
@@ -174,6 +185,10 @@ const handleTaskMethod = (method, args, typeName, v) => {
             break;
         }
         case "wakeUp": {
+            if (typeName == "EntryTask") {
+                v.printer.printWithoutSpace("tk_wup_tsk( 1 )");
+                break;
+            }
             v.printer.printWithoutSpace("tk_wup_tsk( ObjID[" + util.camelToSnake(typeName, true) + "] )");
             break;
         }

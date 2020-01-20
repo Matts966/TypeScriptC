@@ -11,7 +11,7 @@ export class visitor {
     tasks : ts.MethodDeclaration[]
     taskNames : string[]
     useMessageBox : boolean[]
-    useLineBuffer : boolean = false
+    useLineBuffer : boolean
     nowProcessingTaskIndex : number
     private includes : string[]
 
@@ -21,6 +21,7 @@ export class visitor {
         this.tasks = []
         this.taskNames = []
         this.useMessageBox = []
+        this.useLineBuffer = false
         this.includes = []
         this.nowProcessingTaskIndex = 0
     }
@@ -71,7 +72,8 @@ export class visitor {
 
         let tmpPrinter = this.printer
 
-        this.printer = new p.StdOutPrinter
+        this.printer = new p.BufferedPrinter
+        this.printer.unindent()
 
         this.taskNames = this.tasks.map((m) => {
             return util.getTypeStringInSnakeCase(m.parent, this.checker)
@@ -86,11 +88,6 @@ export class visitor {
 
         this.printer.printLn("EXPORT ID ObjID[OBJ_KIND_NUM];")
         this.printer.printLn("")
-
-        if (this.useLineBuffer) {
-            this.printer.printLn("char* line;")
-            this.printer.printLn("")
-        }
 
         this.tasks.forEach((m, index) => {
             this.nowProcessingTaskIndex = index
@@ -123,6 +120,14 @@ export class visitor {
             this.visit(m.body!)
             this.printer.printLn("")
         })
+
+        if (this.useLineBuffer) {
+            const psp = new p.StdOutPrinter
+            psp.printLn("char* line;")
+            psp.printLn("")
+        }
+
+        (this.printer as p.BufferedPrinter).outputBuffer()
 
         this.printer = tmpPrinter
     }

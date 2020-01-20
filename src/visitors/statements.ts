@@ -41,7 +41,8 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             if (util.getTypeString(expr, v.checker) == "result") {
                 switch (expr.getText()) {
                     case "mqtt.result.success": {
-                        v.printer.printWithoutSpace("int " + d.name.getText() + " = MQTT_CODE_SUCCESS;")
+                        v.printer.printWithoutSpace("int " + d.name.getText() + " = ")
+                        expressions.visitExpression(expr, v)
                         return
                     }
                 }
@@ -84,7 +85,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     v.useLineBuffer = true
                     v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
                     v.printer.printLn("tm_getline(line);")
-                    v.printer.print(d.name.getText() + " = line")
+                    v.printer.print("char* " + d.name.getText() + " = line")
                     return
                 }
             }

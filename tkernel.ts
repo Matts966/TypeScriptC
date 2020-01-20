@@ -16,7 +16,7 @@ export abstract class Task {
     }
 }
 
-export const entryTask = new class TaskA extends Task {
+export const entryTask = new class EntryTask extends Task {
     protected task() { }
 }
 
