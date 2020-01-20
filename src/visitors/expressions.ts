@@ -64,6 +64,7 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
 
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
                         handleMQTTClientMethod(expression.expression, v)
+                        return
                     }
 
                     // TODO: add util for type checker

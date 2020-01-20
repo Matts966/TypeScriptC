@@ -72,6 +72,15 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             }
         }
 
+        if (ts.isCallExpression(expr)) {
+            if (expr.expression.getText() == "tkernel.ask") {
+                v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
+                v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);")
+                v.printer.print("tm_putstring(\"\\n\")")
+                return
+            }
+        }
+
         diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText())
         diag.emitDiagnostic(d, "Syntax kind: " + ts.SyntaxKind[expr.kind])
         process.exit(1)

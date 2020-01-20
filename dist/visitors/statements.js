@@ -75,6 +75,14 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                 continue;
             }
         }
+        if (typescript_1.default.isCallExpression(expr)) {
+            if (expr.expression.getText() == "tkernel.ask") {
+                v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
+                v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);");
+                v.printer.print("tm_putstring(\"\\n\")");
+                return;
+            }
+        }
         diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText());
         diag.emitDiagnostic(d, "Syntax kind: " + typescript_1.default.SyntaxKind[expr.kind]);
         process.exit(1);
@@ -175,7 +183,7 @@ const handleTaskInitialization = (newExpr, taskIdent, v) => {
 };
 const handleMQTTClientDeclaration = (d, v) => {
     v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n");
-    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ")");
+    v.printer.print("mqtt_init_ctx(&" + d.name.getText() + ")");
 };
 exports.visitStatement = (statement, v) => {
     if (typescript_1.default.isExpressionStatement(statement)) {
