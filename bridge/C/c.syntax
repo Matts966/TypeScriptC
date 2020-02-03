@@ -1,0 +1,434 @@
+syntax C (Unit) {
+## <translation-unit> ::= {<external-declaration>}*
+  TranslationUnit  : Unit  -> externalDeclarations
+  ExternalDeclarations : externalDeclarations -> externalDeclaration externalDeclarations
+  EpsilonExternalDeclarations : externalDeclarations -> eps
+
+## <external-declaration> ::= <function-definition>
+##   | <declaration>
+  FunctionExternalDeclaration : externalDeclaration -> functionDefinition
+  ExternalDeclaration : externalDeclaration -> declaration
+
+## <function-definition> ::= {<declaration-specifier>}* <declarator> {<declaration>}* <compound-statement>
+  FunctionDefinition : functionDefinition -> declarationSpecifiers declarator declarations compoundStatement
+  Declarations : declarations -> declarations declaration
+  EpsilonDeclarations : declarations -> eps
+  DeclarationSpecifiers : declarationSpecifiers -> declarationSpecifiers declarationSpecifier
+  EpsilonDeclarationSpecifiers : declarationSpecifiers -> eps
+
+## <declaration-specifier> ::= <storage-class-specifier>
+##   | <type-specifier>
+##   | <type-qualifier>
+  StorageDeclarationSpecifier : declarationSpecifier -> storageClassSpecifier
+  TypeDeclarationSpecifier : declarationSpecifier -> typeSpecifier
+  TypeQualifierDeclarationSpecifier : declarationSpecifier -> typeQualifier
+
+## <storage-class-specifier> ::= auto
+##   | register
+##   | static
+##   | extern
+##   | typedef
+  AutoClassSpecifier : storageClassSpecifier -> "auto"
+  RegisterClassSpecifier : storageClassSpecifier -> "register"
+  StaticClassSpecifier : storageClassSpecifier -> "static"
+  ExternClassSpecifier : storageClassSpecifier -> "extern"
+  TypedefClassSpecifier : storageClassSpecifier -> "typedef"
+
+## <type-specifier> ::= void
+##   | char
+##   | short
+##   | int
+##   | long
+##   | float
+##   | double
+##   | signed
+##   | unsigned
+##   | <struct-or-union-specifier>
+##   | <enum-specifier>
+##   | <typedef-name>
+  VoidTypeSpecifier : typeSpecifier -> "void"
+  CharTypeSpecifier : typeSpecifier -> "char"
+  ShortTypeSpecifier : typeSpecifier -> "short"
+  IntTypeSpecifier : typeSpecifier -> "int"
+  LongTypeSpecifier : typeSpecifier -> "long"
+  FloatTypeSpecifier : typeSpecifier -> "float"
+  DoubleTypeSpecifier : typeSpecifier -> "double"
+  SignedTypeSpecifier : typeSpecifier -> "signed"
+  UnsignedTypeSpecifier : typeSpecifier -> "unsigned"
+  StructOrUnionTypeSpecifier : typeSpecifier -> structOrUnionSpecifier
+  EnumTypeSpecifier : typeSpecifier -> enumSpecifier
+  NamedTypeSpecifier : typeSpecifier -> typedefName
+
+## <struct-or-union-specifier> ::= <struct-or-union> <identifier> <struct-declarations>
+##   | <struct-or-union> { {<struct-declaration>}+ }
+##   | <struct-or-union> <identifier>
+  StructOrUnionDeclarationsWithIdentifier : structOrUnionSpecifier -> structOrUnion identifier structDeclarations
+  StructDeclarations : structDeclarations -> structDeclaration structDeclarations
+  StructOrUnionDeclarations : structOrUnionSpecifier -> structOrUnion structDeclarations
+  StructOrUnionIdentifier : structOrUnionSpecifier -> structOrUnion identifier
+
+## <struct-or-union> ::= struct
+##   | union
+  Struct : structOrUnion -> "struct"
+  Union : structOrUnion -> "union"
+
+## <struct-declaration> ::= {<specifier-qualifier>}* <struct-declarator-list>
+  StructDeclaration : structDeclaration -> specifierQualifiers structDeclaratorList
+
+## <specifier-qualifier> ::= <type-specifier>
+##   | <type-qualifier>
+  SpecifierQualifiers : specifierQualifiers -> specifierQualifier specifierQualifiers
+  TypeSpecifier : specifierQualifier -> typeSpecifier
+  TypeQualifier : specifierQualifier -> typeQualifier
+
+## <struct-declarator-list> ::= <struct-declarator>
+##   | <struct-declarator-list> , <struct-declarator>
+  StructDeclaratorList : structDeclaratorList -> structDeclarator
+  StructDeclaratorLists : structDeclaratorList -> structDeclaratorList structDeclarator
+
+## <struct-declarator> ::= <declarator>
+##   | <declarator> : <constant-expression>
+##   | : <constant-expression>
+  StructDeclarator : structDeclarator -> declarator
+  StructDeclaratorWithExpression : structDeclarator -> declarator constantExpression
+  ConstantExpression : structDeclarator -> constantExpression
+
+## <declarator> ::= {<pointer>}? <direct-declarator>
+  PointerDeclarator : declarator -> pointer directDeclarator
+  DirectDeclarator : declarator -> directDeclarator
+
+## <pointer> ::= * {<type-qualifier>}* {<pointer>}?
+  SinglePointer : pointer -> "asterisk" typeQualifiers
+  Pointers : pointer -> "asterisk" typeQualifiers pointer
+  TypeQualifiers : typeQualifiers -> typeQualifier typeQualifiers
+  EpsilonTypeQualifiers : typeQualifiers -> eps
+
+## <type-qualifier> ::= const
+##   | volatile
+  ConstTypeQualifier : typeQualifier -> "const"
+  VolatileTypeQualifier : typeQualifier -> "volatile"
+
+## <direct-declarator> ::= <identifier>
+##   | ( <declarator> )
+##   | <direct-declarator> [ {<constant-expression>}? ]
+##   | <direct-declarator> ( <parameter-type-list> )
+##   | <direct-declarator> ( {<identifier>}* )
+  IdentifierDirectDeclarator : directDeclarator -> identifier
+  DeclaratorDirectDeclarator : directDeclarator -> declarator
+  SquareConstantDirectDeclarator : directDeclarator -> directDeclarator constantExpression
+  SquareDirectDeclarator : directDeclarator -> directDeclarator
+  CurlyParameterDirectDeclarator : directDeclarator -> directDeclarator parameterTypeList
+  CurlyDirectDeclarator : directDeclarator -> identifiers
+  Identifiers : identifiers -> identifier identifiers
+  EpsilonIdentifiers : identifiers -> eps
+
+## <constant-expression> ::= <conditional-expression>
+  ConditionalConstantExpression : constantExpression -> conditionalExpression
+
+## <conditional-expression> ::= <logical-or-expression>
+##   | <logical-or-expression> ? <expression> : <conditional-expression>
+  ConditionalLogicalOrExpression : conditionalExpression -> logicalOrExpression
+  ConditionalLogicalOrExpressions : conditionalExpression -> logicalOrExpression expression conditionalExpression
+
+## <logical-or-expression> ::= <logical-and-expression>
+##   | <logical-or-expression> || <logical-and-expression>
+  LogicalOrAndExpression : logicalOrExpression -> logicalAndExpression
+  LogicalOrOrAndExpression : logicalOrExpression -> logicalOrExpression logicalAndExpression
+
+## <logical-and-expression> ::= <inclusive-or-expression>
+##   | <logical-and-expression> && <inclusive-or-expression>
+  LogicalAndInclusiveOrExpression : logicalAndExpression -> inclusiveOrExpression
+  LogicalAndAndInclusiveOrExpression : logicalAndExpression -> logicalAndExpression
+inclusiveOrExpression
+
+## <inclusive-or-expression> ::= <exclusive-or-expression>
+##   | <inclusive-or-expression> | <exclusive-or-expression>
+  InclusiveOrExclusiveOrExpression : inclusiveOrExpression -> exclusiveOrExpression
+  InclusiveOrExclusiveOrExpression : inclusiveOrExpression -> inclusiveOrExpression exclusiveOrExpression
+
+## <exclusive-or-expression> ::= <and-expression>
+##   | <exclusive-or-expression> ^ <and-expression>
+  ExclusiveOrAndExpression : exclusiveOrExpression -> andExpression
+  ExclusiveOrAndExpressions : exclusiveOrExpression -> exclusiveOrExpression andExpression
+
+## <and-expression> ::= <equality-expression>
+##   | <and-expression> & <equality-expression>
+  EqualityAndExpression : andExpression -> equalityExpression
+  EqualityAndExpressions : andExpression -> andExpression equalityExpression
+
+## <equality-expression> ::= <relational-expression>
+##   | <equality-expression> == <relational-expression>
+##   | <equality-expression> != <relational-expression>
+  RelationalEqualityExpression : equalityExpression -> relationalExpression
+  EqualityExpression : equalityExpression -> equalityExpression "equals" relationalExpression
+  NotEqualityExpression : equalityExpression -> equalityExpression "notEquals" relationalExpression
+
+## <relational-expression> ::= <shift-expression>
+##   | <relational-expression> < <shift-expression>
+##   | <relational-expression> > <shift-expression>
+##   | <relational-expression> <= <shift-expression>
+##   | <relational-expression> >= <shift-expression>
+  RelationalShiftExpression : relationalExpression -> shiftExpression
+  RelationalLeftShiftExpression : relationalExpression -> relationalExpression "leftShift" shiftExpression
+  RelationalRightShiftExpression : relationalExpression -> relationalExpression "rightShift" shiftExpression
+  RelationalLeftEqualShiftExpression : relationalExpression -> relationalExpression "leftEqualShift" shiftExpression
+  RelationalRightEqualShiftExpression : relationalExpression -> relationalExpression "rightEqualShift" shiftExpression
+
+## <shift-expression> ::= <additive-expression>
+##   | <shift-expression> << <additive-expression>
+##   | <shift-expression> >> <additive-expression>
+  AdditiveShiftExpression : shiftExpression -> additiveExpression
+  LeftShiftExpression : shiftExpression -> shiftExpression "leftShift" additiveExpression
+  RightShiftExpression : shiftExpression -> shiftExpression "rightShift" additiveExpression
+
+## <additive-expression> ::= <multiplicative-expression>
+##   | <additive-expression> + <multiplicative-expression>
+##   | <additive-expression> - <multiplicative-expression>
+  MultiplicativeAdditiveExpression : additiveExpression -> multiplicativeExpression
+  AdditivePlusExpression : additiveExpression -> additiveExpression "plus" multiplicativeExpression
+  AdditiveMinusExpression : additiveExpression -> additiveExpression "minus" multiplicativeExpression
+
+## <multiplicative-expression> ::= <cast-expression>
+##   | <multiplicative-expression> * <cast-expression>
+##   | <multiplicative-expression> / <cast-expression>
+##   | <multiplicative-expression> % <cast-expression>
+  MultiplicativeCastExpression : multiplicativeExpression -> castExpression
+  MultiMultiplicativeExpression : multiplicativeExpression -> multiplicativeExpression "multi" castExpression
+  DivMultiplicativeExpression : multiplicativeExpression -> multiplicativeExpression "div" castExpression
+  PercentMultiplicativeExpression : multiplicativeExpression -> multiplicativeExpression "percent" castExpression
+
+## <cast-expression> ::= <unary-expression>
+##   | ( <type-name> ) <cast-expression>
+  CastExpression : castExpression -> unaryExpression
+  CastExpressions : castExpression -> typeName castExpression
+
+## <unary-expression> ::= <postfix-expression>
+##   | ++ <unary-expression>
+##   | -- <unary-expression>
+##   | <unary-operator> <cast-expression>
+##   | sizeof <unary-expression>
+##   | sizeof <type-name>
+  UnaryPostfixExpression : unaryExpression -> postfixExpression
+  UnaryPlusExpression : unaryExpression -> "plusPlus" unaryExpression
+  UnaryMinusExpression : unaryExpression -> "minusMinus" unaryExpression
+  UnaryOperatorCastExpression : unaryExpression -> unaryOperator castExpression
+  UnarySizeofExpression : unaryExpression -> "sizeof" unaryExpression
+  UnarySizeofTypeNameExpression : unaryExpression -> "sizeof" typeName
+
+## <postfix-expression> ::= <primary-expression>
+##   | <postfix-expression> [ <expression> ]
+##   | <postfix-expression> ( {<assignment-expression>}* )
+##   | <postfix-expression> . <identifier>
+##   | <postfix-expression> -> <identifier>
+##   | <postfix-expression> ++
+##   | <postfix-expression> --
+  PostfixPrimaryExpression : postfixExpression -> primaryExpression
+  PostfixExpressions : postfixExpression -> postfixExpression expression
+  PostfixAssignmentExpressions : postfixExpression -> postfixExpression assignmentExpressions
+  PostfixDotExpressions : postfixExpression -> postfixExpression "dot" identifier
+  PostfixArrowExpressions : postfixExpression -> postfixExpression "arrow" identifier
+  PostfixPlusExpressions : postfixExpression -> postfixExpression "plusPlus"
+  PostfixMinusExpressions : postfixExpression -> postfixExpression "minusMinus"
+  AssignmentExpressions : assignmentExpressions -> assignmentExpression assignmentExpressions
+  AssignmentExpressions : assignmentExpressions -> eps
+
+## <primary-expression> ::= <identifier>
+##   | <constant>
+##   | <string>
+##   | ( <expression> )
+  PrimaryIdentifierExpression : primaryExpression -> identifier
+  PrimaryConstantExpression : primaryExpression -> constant
+## PrimaryStringExpression : primaryExpression -> string
+  PrimaryExpression : primaryExpression -> expression
+
+## <constant> ::= <integer-constant>
+##   | <character-constant>
+##   | <floating-constant>
+##   | <enumeration-constant>
+  ConstantInteger : constant -> "integer(number)"
+  ConstantString : constant -> "character(string)"
+  ConstantFloat : constant -> "floating(number)"
+  ConstantEnum : constant -> enumerationConstant
+
+## <expression> ::= <assignment-expression>
+##   | <expression> , <assignment-expression>
+  ExpressionAssignmentExpression : expression -> assignmentExpression
+  ExpressionAssignmentExpressions : expression -> expression assignmentExpression
+
+## <assignment-expression> ::= <conditional-expression>
+##   | <unary-expression> <assignment-operator> <assignment-expression>
+  ConditionalAssignmentExpression : assignmentExpression -> conditionalExpression
+  AssignmentExpressions : assignmentExpression -> unaryExpression assignmentOperator assignmentExpression
+
+## <assignment-operator> ::= =
+##   | *=
+##   | /=
+##   | %=
+##   | +=
+##   | -=
+##   | <<=
+##   | >>=
+##   | &=
+##   | ^=
+##   | |=
+  AssignmentEqualOperator : assignmentOperator -> "euaql"
+  AssignmentMultiEqualOperator : assignmentOperator -> "multiEqual"
+  AssignmentDivEqualOperator : assignmentOperator -> "divEqual"
+  AssignmentPercentEqualOperator : assignmentOperator -> "percentEqual"
+  AssignmentPlusEqualOperator : assignmentOperator -> "plusEqual"
+  AssignmentMinuxEqualOperator : assignmentOperator -> "minusEqual"
+  AssignmentLeftShiftOperator : assignmentOperator -> "leftShiftEqual"
+  AssignmentRightShiftOperator : assignmentOperator -> "rifhtShiftEqual"
+  AssignmentAndEqualOperator : assignmentOperator -> "andEqual"
+  AssignmentXorEqualOperator : assignmentOperator -> "xorEqual"
+  AssignmentOrEqualOperator : assignmentOperator -> "orEqual"
+
+## <unary-operator> ::= &
+##   | *
+##   | +
+##   | -
+##   | ~
+##   | !
+  UnaryAndOperator : unaryOperator -> "and"
+  UnaryMultiOperator : unaryOperator -> "multi"
+  UnaryPlusOperator : unaryOperator -> "plus"
+  UnaryMinusOperator : unaryOperator -> "minus"
+  UnaryComplementOperator : unaryOperator -> "complement"
+  UnaryNotOperator : unaryOperator -> "not"
+
+## <type-name> ::= {<specifier-qualifier>} + {<abstract-declarator>}?
+  TypeName : typeName -> specifierQualifier specifierQualifiers
+  TypeNameWithAbstractDeclarator : typeName -> specifierQualifier specifierQualifiers abstractDeclarator
+
+## <parameter-type-list> ::= <parameter-list>
+##   | <parameter-list> , ...
+  ParameterTypeList : parameterTypeList -> parameterList
+  ParameterVariadicTypeList : parameterTypeList -> parameterList "variadic"
+
+## <parameter-list> ::= <parameter-declaration>
+##   | <parameter-list> , <parameter-declaration>
+  ParameterList : parameterList -> parameterDeclaration
+  ParameterLists : parameterList -> parameterList parameterDeclaration
+
+## <parameter-declaration> ::= {<declaration-specifier>}+ <declarator>
+##   | {<declaration-specifier>}+ <abstract-declarator>
+##   | {<declaration-specifier>}+
+  DeclaratorParameterDeclaration : parameterDeclaration -> declarationSpecifier declarationSpecifiers declarator
+  AbstractParameterDeclaration : parameterDeclaration -> declarationSpecifier declarationSpecifiers abstractDeclarator
+  ParameterDeclaration : parameterDeclaration -> declarationSpecifier declarationSpecifiers
+
+## <abstract-declarator> ::= <pointer>
+##   | <pointer> <direct-abstract-declarator>
+##   | <direct-abstract-declarator>
+  AbstractPointerDeclarator : abstractDeclarator -> pointer
+  AbstractPointerDirectDeclarator : abstractDeclarator -> pointer directAbstractDeclarator
+  AbstractDirectDeclarator : abstractDeclarator -> directAbstractDeclarator
+
+## <direct-abstract-declarator> ::=  ( <abstract-declarator> )
+##   | {<direct-abstract-declarator>}? [ {<constant-expression>}? ]
+##   | {<direct-abstract-declarator>}? ( {<parameter-type-list>}? )
+  DirectAbstractDeclarator : directAbstractDeclarator -> abstractDeclarator
+  DirectConstantAbstractDeclarator : directAbstractDeclarator -> constantExpression
+  DirectConstantAbstractDeclarators : directAbstractDeclarator -> directAbstractDeclarator constantExpression
+  DirectIndexAbstractDeclarator : directAbstractDeclarator -> "index"
+  DirectNoIndexAbstractDeclarator : directAbstractDeclarator -> directAbstractDeclarator "noIndex"
+  DirectParameterTypeListAbstractDeclarator : directAbstractDeclarator -> parameterTypeList
+  DirectParameterTypeListAbstractDeclarators : directAbstractDeclarator -> directAbstractDeclarator parameterTypeList
+  DirectParamAbstractDeclarator : directAbstractDeclarator -> "param"
+  DirectNoParamAbstractDeclarator : directAbstractDeclarator -> directAbstractDeclarator "noParam"
+
+## <enum-specifier> ::= enum <identifier> { <enumerator-list> }
+##   | enum { <enumerator-list> }
+##   | enum <identifier>
+## <enumerator-list> ::= <enumerator>
+##   | <enumerator-list> , <enumerator>
+## <enumerator> ::= <identifier>
+##    <identifier> = <constant-expression>
+  EnumIdentifierListSpecifier : enumSpecifier -> "enum" identifier enumeratorList
+  EnumListSpecifier : enumSpecifier -> "enum" enumeratorList
+  EnumIdentifierSpecifier : enumSpecifier -> "enum" identifier
+  EnumeratorList : enumeratorList -> enumerator
+  EnumeratorLists : enumeratorList -> enumeratorList enumerator
+  EnumeratorIdentifier : enumerator -> identifier
+  Identifier : identifier -> constantExpression
+
+## <typedef-name> ::= <identifier>
+  TypedefName : typedefName -> identifier
+
+## <declaration> ::=  {<declaration-specifier>}+ {<init-declarator>}* ;
+## <init-declarator> ::= <declarator>
+##   | <declarator> = <initializer>
+  Declaration : declaration -> declarationSpecifier declarationSpecifiers initDeclarators
+  InitDeclarators : initDeclarators -> initDeclarators initDeclarator
+  EpsilonInitDeclarators : initDeclarators -> eps
+  InitDeclarator : initDeclarator -> declarator
+  InitInitializerDeclarator : initDeclarator -> declarator initializer
+
+## <initializer> ::= <assignment-expression>
+##   | { <initializer-list> }
+##   | { <initializer-list> , }
+## <initializer-list> ::= <initializer>
+##   | <initializer-list> , <initializer>
+  AssignmentInitializer : initializer -> assignmentExpression
+  Initializer : initializer -> initializerList
+  initializerList : initializerList -> initializer
+  initializerLists : initializerList -> initializerList initializer
+
+## <compound-statement> ::= { {<declaration>}* {<statement>}* }
+  CompoundStatement : compoundStatement -> declarations statements
+  Statements : statements -> statement statements
+  EpsilonStatements : statements -> eps
+
+## <statement> ::= <labeled-statement>
+##   | <expression-statement>
+##   | <compound-statement>
+##   | <selection-statement>
+##   | <iteration-statement>
+##   | <jump-statement>
+  StatementLabeledStatement : statement -> labeledStatement
+  StatementExpressionStatement : statement -> expressionStatement
+  StatementCompoundStatement : statement -> compoundStatement
+  StatementSelectionStatement : statement -> selectionStatement
+  StatementIterationStatement : statement -> iterationStatement
+  StatementJumpStatement : statement -> jumpStatement
+
+## <labeled-statement> ::= <identifier> : <statement>
+##   | case <constant-expression> : <statement>
+##   | default : <statement>
+  LabeledStatement : labeledStatement -> identifier statement
+  CaseStatement : labeledStatement -> "case" constantExpression statement
+  DefaultStatement : labeledStatement -> "default" statement
+
+## <expression-statement> ::= {<expression>}? ;
+  ExpressionStatement : expressionStatement -> expression
+  EpsilonExpressionStatement : expressionStatement -> eps
+
+## <selection-statement> ::= if ( <expression> ) <statement>
+##   | if ( <expression> ) <statement> else <statement>
+##   | switch ( <expression> ) <statement>
+  IfStatement : selectionStatement -> "if" expression statement
+  IfElseStatement : selectionStatement -> "if" expression statement "else" statement
+  SwitchStatement : selectionStatement -> "switch" expression statement
+
+## <iteration-statement> ::= while ( <expression> ) <statement>
+##   | do <statement> while ( <expression> ) ;
+##   | for ( {<expression>}? ; {<expression>}? ; {<expression>}? ) <statement>
+  WhileStatement : iterationStatement -> "while" expression statement
+  DoWhileStatement : iterationStatement -> "do" statement "while" expression
+  ForStatement : iterationStatement -> "for" declExpression conditionExpression updateExpression statement
+  DeclExpression : declExpression -> expression
+  EpsilonDeclExpression : declExpression -> eps
+  ConditionExpression : conditionExpression -> expression
+  EpsilonConditionExpression : conditionExpression -> eps
+  UpdateExpression : updateExpression -> expression
+  EpsilonUpdateExpression : updateExpression -> eps
+
+## <jump-statement> ::= goto <identifier> ;
+##   | continue ;
+##   | break ;
+##   | return {<expression>}? ;
+  GotoStatement : jumpStatement -> "goto" identifier
+  ContinueStatement : jumpStatement -> "continue" identifier
+  BreakStatement : jumpStatement -> "break" identifier
+  ReturnStatement : jumpStatement -> "return" identifier
+}
