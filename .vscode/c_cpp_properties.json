@@ -9,7 +9,9 @@
         "intelliSenseMode": "clang-x64",
         "includePath": [
           "${myDefaultIncludePath}",
-          "/usr/local/opt/llvm/include"
+          "/usr/local/opt/llvm/include",
+          "~/T-Kernel2.0/srcpkg/tkernel_source/include",
+          "~/T-Kernel2.0/wolf/wolfMQTT-1.3.0"
         ],
         "macFrameworkPath": ["/System/Library/Frameworks"],
         "defines": [],
@@ -20,7 +22,9 @@
         "browse": {
           "path": [
             "${workspaceFolder}",
-            "/usr/local/opt/llvm/include"
+            "/usr/local/opt/llvm/include",
+            "~/T-Kernel2.0/srcpkg/tkernel_source/include",
+            "~/T-Kernel2.0/wolf/wolfMQTT-1.3.0"
           ],
           "limitSymbolsToIncludedHeaders": true,
           "databaseFilename": ""
