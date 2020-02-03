@@ -1,4 +1,0 @@
-/workdir/CMakeFiles/edit_cache.dir
-/workdir/CMakeFiles/find-class-decls.dir
-/workdir/CMakeFiles/rebuild_cache.dir
-/workdir/CMakeFiles/tooling-sample.dir
