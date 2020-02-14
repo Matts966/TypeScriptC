@@ -44,7 +44,10 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                             diag.emitDiagnostic(e, "control sequence " + cc + " is not allowed now")
                             process.exit(1)
                         }).join('')
-                    else process.exit(1)
+                    else {
+                        diag.emitDiagnostic(e, "not literal")
+                        process.exit(1)
+                    }
                 }) + "\\n\")")
                 return
             case "process.exit":
@@ -142,8 +145,8 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         v.printer.printWithoutSpace(expression.getText())
         return
     }
-    diag.emitDiagnostic(expression, "don't know how to handle the expression " + expression.getText())
-    diag.emitDiagnostic(expression, "Syntax kind: " + ts.SyntaxKind[expression.kind])
+    diag.emitDiagnostic(expression, "don't know how to handle the expression " + expression.getText() +
+        "\nSyntax kind: " + ts.SyntaxKind[expression.kind])
     process.exit(1)
 }
 
@@ -263,7 +266,7 @@ const handleTaskMethod = (method : ts.PropertyAccessExpression,
     }
 }
 
-export const handleClassMembers = (members : ts.NodeArray<ts.ClassElement>, v : visitor) => {
+export const handleTaskMembers = (members : ts.NodeArray<ts.ClassElement>, v : visitor) => {
     for (const member of members) {
         const invalidOverrideMessage = "please override only task with protected keyword"
         if (ts.isMethodDeclaration(member)) {

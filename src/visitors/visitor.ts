@@ -50,10 +50,10 @@ export class visitor {
             if (!sourceFile.isDeclarationFile &&
                 !sourceFile.fileName.endsWith("tkernel.ts") &&
                 !sourceFile.fileName.endsWith("mqtt.ts")) {
+
                 // using checker sample
-                const symbol = this.checker.getSymbolAtLocation(sourceFile)
-                // no program
-                if (!symbol) process.exit(0)
+                // const symbol = this.checker.getSymbolAtLocation(sourceFile)
+
                 // Walk the tree to search source code.
                 ts.forEachChild(sourceFile, this.visit)
             }

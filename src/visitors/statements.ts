@@ -52,7 +52,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
         if (ts.isNewExpression(expr)) {
             if (ts.isClassExpression(expr.expression)) {
                 if (isTask(expr.expression.name, v)) {
-                    expressions.handleClassMembers(expr.expression.members, v)
+                    expressions.handleTaskMembers(expr.expression.members, v)
                     if (!expr.expression.name) {
                         diag.emitDiagnostic(expr.expression, "task should have name")
                         process.exit(1)
@@ -93,8 +93,8 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             }
         }
 
-        diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText())
-        diag.emitDiagnostic(d, "Syntax kind: " + ts.SyntaxKind[expr.kind])
+        diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText() + 
+            ", Syntax kind: " + ts.SyntaxKind[expr.kind])
         process.exit(1)
     }
 }
@@ -296,6 +296,7 @@ export const visitClassDeclaration = (classDeclaration : ts.ClassDeclaration, v 
     const m = classDeclaration.members[0]
     if (!m || !m.name || m.name.getText() != "task") {
         notAllowedDiagnostic()
+        return
     }
-    expressions.handleClassMembers(classDeclaration.members, v)
+    expressions.handleTaskMembers(classDeclaration.members, v)
 }
