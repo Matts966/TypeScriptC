@@ -75,6 +75,7 @@
         "memory_resource": "cpp",
         "cinttypes": "cpp",
         "tkernel.h": "c",
-        "tmonitor.h": "c"
+        "tmonitor.h": "c",
+        "gc.h": "c"
     }
 }
