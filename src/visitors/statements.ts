@@ -3,6 +3,7 @@ import * as expressions from './expressions'
 import * as diag from '../diagnostics'
 import * as util from '../utilities'
 import { visitor, Function } from './visitor'
+import { BufferedPrinter } from '../printer'
 
 export const isStatement = (node : ts.Node) : node is ts.Statement => {
     if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isForStatement || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
@@ -34,7 +35,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
         if (ts.isNumericLiteral(expr)) {
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText())
-            return
+            continue
         }
 
         if (ts.isPropertyAccessExpression(expr)) {
@@ -43,7 +44,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     case "mqtt.result.success": {
                         v.printer.printWithoutSpace("int " + d.name.getText() + " = ")
                         expressions.visitExpression(expr, v)
-                        return
+                        continue
                     }
                 }
             }
@@ -79,7 +80,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
                     v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);")
                     v.printer.print("tm_putstring(\"\\n\")")
-                    return
+                    continue
                 }
                 case "tkernel.ask_line": {
                     v.useLineBuffer = true
@@ -88,7 +89,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     v.printer.printLn("char " + d.name.getText() + "[sizeof line];")
                     v.printer.printLn("strncpy(" + d.name.getText() + ", line, sizeof line);")
                     v.printer.print(d.name.getText() + "[sizeof line - 1] = '\\0'")
-                    return
+                    continue
                 }
             }
         }
@@ -98,7 +99,12 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             const types = util.getTypeString(expr, v.checker).split(" ")
             const returnType = types[types.length-1]
             v.functions.push(new Function(returnType, d.name.getText(), expr.body))
-            return
+            // Visit body to check the dependencies (do not print)
+            const tmp = v.printer
+            v.printer = new BufferedPrinter
+            v.visit(expr.body)
+            v.printer = tmp
+            continue
         }
 
         const type = util.getTypeString(expr, v.checker)
@@ -106,12 +112,16 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             v.printer.print(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `)
         } else {
             const name = d.name.getText()
-            v.printer.print(`${type}* ${name} = `)
-            v.environment_stack[0][name] = 'pointer'
+            // TODO: add adhoc type mapper
+            if (type == "MQTTClient") {
+                v.printer.printWithoutSpace(`MQTTCtx* ${name} = `)
+            } else {
+                v.printer.printWithoutSpace(`${type}* ${name} = `)
+            }
+            v.environmentStack[0][name] = 'pointer'
         }
         expressions.visitExpression(expr, v)
-        v.printer.printWithoutSpace(";\n")
-        return
+        continue
     }
 }
 const isMQTTClient = (location : ts.Node, v : visitor) => {
@@ -204,13 +214,14 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
 }
 const handleMQTTClientDeclaration = (d : ts.VariableDeclaration, v : visitor) => {
     if (escape(d)) {
-        v.printer.printLn("MQTTCtx* " + d.name.getText() + " = gc_malloc(&gc, sizeof(MQTTCtx));")
-        v.printer.printLn("mqtt_init_ctx(" + d.name.getText() + ");")
-        v.environment_stack[0][d.name.getText()] = 'pointer'
+        v.printer.printWithoutSpace("MQTTCtx* " + d.name.getText() + " = gc_malloc(&gc, sizeof(MQTTCtx));\n")
+        v.printer.print("mqtt_init_ctx(" + d.name.getText() + ")")
+        v.environmentStack[0][d.name.getText()] = 'pointer'
+        v.useGC = true
         return
     }
-    v.printer.printLn("MQTTCtx " + d.name.getText() + ";")
-    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ");")
+    v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n")
+    v.printer.print("mqtt_init_ctx(&" + d.name.getText() + ")")
 }
 const escape = (n: ts.VariableDeclaration) => {
     const name = n.name.getText()
@@ -305,13 +316,13 @@ export const visitStatement = (statement : ts.Statement, v : visitor) => {
         return
     }
     if (ts.isBlock(statement)) {
-        v.environment_stack.unshift(new Map<string, string>())
+        v.environmentStack.unshift(new Map<string, string>())
         v.printer.printLn("{", { indentLevel: 0 })
         v.printer.indent()
         statement.statements.forEach((e) => {
             visitStatement(e, v)
         })
-        v.environment_stack.shift()
+        v.environmentStack.shift()
         v.printer.unindent()
         v.printer.printLn("}")
         return

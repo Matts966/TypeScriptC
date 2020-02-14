@@ -69,7 +69,7 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
 
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
                         let pointer = false
-                        for (const e of v.environment_stack) {
+                        for (const e of v.environmentStack) {
                             if (e[expression.expression.expression.getText()] == 'pointer') {
                                 pointer = true
                             }
@@ -142,7 +142,7 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
     }
     if (ts.isPropertyAccessExpression(expression)) {
         let pointer = false
-        for (const e of v.environment_stack) {
+        for (const e of v.environmentStack) {
             if (e[expression.expression.getText()] == 'pointer') {
                 v.printer.printWithoutSpace(expression.expression.getText() + "->")
                 pointer = true

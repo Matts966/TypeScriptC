@@ -76,8 +76,8 @@ EXPORT void task_mqtt_shell(INT stacd, VP exinf) {
 }
 
 EXPORT INT usermain( void ) {
-	byte a;
-	gc_start(&gc, &a);
+	byte __a;
+	gc_start(&gc, &__a);
 
 	T_CTSK t_ctsk;
 	ID objid;
@@ -90,7 +90,7 @@ EXPORT INT usermain( void ) {
 	so_main(0, NULL);
 	net_conf(NET_CONF_EMULATOR, NET_CONF_DHCP);
 
-	t_ctsk.stksz = 1024;
+		t_ctsk.stksz = 1024;
 	t_ctsk.itskpri = 1;
 	STRCPY( (char *)t_ctsk.dsname, "task_mqtt_shell");
 	t_ctsk.task = task_mqtt_shell;

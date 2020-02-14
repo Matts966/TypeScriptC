@@ -24,7 +24,8 @@ export class visitor {
     useNetwork : boolean = false
     nowProcessingTaskIndex : number = 0
     private includes : string[] = []
-    environment_stack: Map<string, string>[] = [new Map<string, string>()]
+    environmentStack: Map<string, string>[] = [new Map<string, string>()]
+    useGC : boolean = false
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
         this.printer = printer
@@ -81,7 +82,11 @@ export class visitor {
             if (util.isPrimitiveType(f.type)) {
                 this.printer.print(`${util.mapPrimitiveType(f.type)} ${f.name}() `)
             } else {
-                this.printer.print(`${f.type}* ${f.name}() `)
+                if (f.type == 'MQTTClient') {
+                    this.printer.print(`MQTTCtx* ${f.name}() `)
+                } else {
+                    this.printer.print(`${f.type}* ${f.name}() `)
+                }
             }
             this.visit(f.body)
             this.printer.printLn("")
