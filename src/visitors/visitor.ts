@@ -5,16 +5,26 @@ import * as statements from './statements'
 import * as p from '../printer'
 import * as util from '../utilities'
 
+export class Function {
+    constructor(
+        public type: string,
+        public name: string,
+        public body: ts.FunctionBody | ts.ConciseBody
+    ) {}
+}
+
 export class visitor {
     printer : p.Printer
     checker : ts.TypeChecker
     tasks : ts.MethodDeclaration[] = []
     taskNames : string[] = []
+    functions : Function[] = []
     useMessageBox : boolean[] = []
     useLineBuffer : boolean = false
     useNetwork : boolean = false
     nowProcessingTaskIndex : number = 0
     private includes : string[] = []
+    environment_stack: Map<string, string>[] = [new Map<string, string>()]
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
         this.printer = printer
@@ -58,6 +68,26 @@ export class visitor {
                 ts.forEachChild(sourceFile, this.visit)
             }
         }
+    }
+
+    printFucntions = () => {
+        if (this.functions.length == 0) {
+            return
+        }
+        let tmpPrinter = this.printer
+        this.printer = new p.BufferedPrinter
+        this.printer.unindent()
+        this.functions.forEach((f) => {
+            if (util.isPrimitiveType(f.type)) {
+                this.printer.print(`${util.mapPrimitiveType(f.type)} ${f.name}() `)
+            } else {
+                this.printer.print(`${f.type}* ${f.name}() `)
+            }
+            this.visit(f.body)
+            this.printer.printLn("")
+        });
+        (this.printer as p.BufferedPrinter).outputBuffer()
+        this.printer = tmpPrinter
     }
 
     printTasks = () => {

@@ -2,7 +2,7 @@ import ts, { Expression } from 'typescript'
 import * as expressions from './expressions'
 import * as diag from '../diagnostics'
 import * as util from '../utilities'
-import { visitor } from './visitor'
+import { visitor, Function } from './visitor'
 
 export const isStatement = (node : ts.Node) : node is ts.Statement => {
     if (ts.isExpressionStatement(node) || ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isForStatement || ts.isVariableStatement(node) || ts.isReturnStatement(node) || ts.isBlock(node)) {
@@ -93,9 +93,25 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             }
         }
 
-        diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText() + 
-            ", Syntax kind: " + ts.SyntaxKind[expr.kind])
-        process.exit(1)
+        if (ts.isArrowFunction(expr)) {
+            if (!util.isGlobal(d.parent)) diag.emitDiagnostic(d, "Function Declarations are only allowed in global scope")
+            const types = util.getTypeString(expr, v.checker).split(" ")
+            const returnType = types[types.length-1]
+            v.functions.push(new Function(returnType, d.name.getText(), expr.body))
+            return
+        }
+
+        const type = util.getTypeString(expr, v.checker)
+        if (util.isPrimitiveType(type)) {
+            v.printer.print(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `)
+        } else {
+            const name = d.name.getText()
+            v.printer.print(`${type}* ${name} = `)
+            v.environment_stack[0][name] = 'pointer'
+        }
+        expressions.visitExpression(expr, v)
+        v.printer.printWithoutSpace(";\n")
+        return
     }
 }
 const isMQTTClient = (location : ts.Node, v : visitor) => {
@@ -187,8 +203,34 @@ const handleTaskInitialization = (newExpr : ts.NewExpression,
     }
 }
 const handleMQTTClientDeclaration = (d : ts.VariableDeclaration, v : visitor) => {
-    v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n")
-    v.printer.print("mqtt_init_ctx(&" + d.name.getText() + ")")
+    if (escape(d)) {
+        v.printer.printLn("MQTTCtx* " + d.name.getText() + " = gc_malloc(&gc, sizeof(MQTTCtx));")
+        v.printer.printLn("mqtt_init_ctx(" + d.name.getText() + ");")
+        v.environment_stack[0][d.name.getText()] = 'pointer'
+        return
+    }
+    v.printer.printLn("MQTTCtx " + d.name.getText() + ";")
+    v.printer.printLn("mqtt_init_ctx(&" + d.name.getText() + ");")
+}
+const escape = (n: ts.VariableDeclaration) => {
+    const name = n.name.getText()
+    let escaped = false
+    // Search the block the decl is belong to
+    n.parent.parent.parent.forEachChild((node) => {
+        if (ts.isReturnStatement(node)) {
+            if (node.expression) {
+                if (node.expression.getText() == name) {
+                    escaped =  true
+                }
+            }
+        }
+        if (ts.isPropertyAssignment(node)) {
+            if (node.initializer.getText() == name) {
+                escaped = true
+            }
+        }
+    })
+    return escaped
 }
 export const visitStatement = (statement : ts.Statement, v : visitor) => {
     if (ts.isExpressionStatement(statement)) {
@@ -263,13 +305,25 @@ export const visitStatement = (statement : ts.Statement, v : visitor) => {
         return
     }
     if (ts.isBlock(statement)) {
+        v.environment_stack.unshift(new Map<string, string>())
         v.printer.printLn("{", { indentLevel: 0 })
         v.printer.indent()
         statement.statements.forEach((e) => {
             visitStatement(e, v)
         })
+        v.environment_stack.shift()
         v.printer.unindent()
         v.printer.printLn("}")
+        return
+    }
+    if (ts.isReturnStatement(statement)) {
+        if (statement.expression) {
+            v.printer.print("return ")
+            expressions.visitExpression(statement.expression, v)
+            v.printer.printWithoutSpace(";\n")
+            return
+        }
+        v.printer.print("return;")
         return
     }
     diag.emitDiagnostic(statement, "visitStatement: don't know how to handle " + ts.SyntaxKind[statement.kind])

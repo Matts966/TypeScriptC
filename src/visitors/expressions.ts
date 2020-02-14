@@ -68,7 +68,13 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
                 if (ts.isPropertyAccessExpression(expression.expression)) {
 
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
-                        handleMQTTClientMethod(expression.expression, v)
+                        let pointer = false
+                        for (const e of v.environment_stack) {
+                            if (e[expression.expression.expression.getText()] == 'pointer') {
+                                pointer = true
+                            }
+                        }
+                        handleMQTTClientMethod(expression.expression, v, pointer)
                         return
                     }
 
@@ -134,14 +140,28 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
         v.printer.printWithoutSpace("MQTT_CODE_SUCCESS")
         return
     }
-    if (ts.isPropertyAccessExpression(expression)
-        || ts.isPostfixUnaryExpression(expression)) {
-        switch (expression.getText()) {
-            case "client.message": {
-                v.printer.printWithoutSpace("client.publish.buffer")
+    if (ts.isPropertyAccessExpression(expression)) {
+        let pointer = false
+        for (const e of v.environment_stack) {
+            if (e[expression.expression.getText()] == 'pointer') {
+                v.printer.printWithoutSpace(expression.expression.getText() + "->")
+                pointer = true
+                break
             }
-                return
         }
+        if (!pointer) {
+            v.printer.printWithoutSpace(expression.expression.getText() + ".")
+        }
+        if (util.getTypeString(expression.expression, v.checker) == 'MQTTClient') {
+            if (expression.name.getText() == 'message') {
+                v.printer.printWithoutSpace("publish.buffer")
+                return
+            }
+        }
+        v.printer.printWithoutSpace(expression.name.getText())
+        return
+    }
+    if (ts.isPostfixUnaryExpression(expression)) {
         v.printer.printWithoutSpace(expression.getText())
         return
     }
@@ -150,26 +170,27 @@ export const visitExpression = (expression : ts.Expression, v : visitor) => {
     process.exit(1)
 }
 
-const handleMQTTClientMethod = (method : ts.PropertyAccessExpression, v : visitor) => {
+const handleMQTTClientMethod = (method : ts.PropertyAccessExpression, v : visitor, pointer : boolean) => {
+    const prefix = pointer ? "" : "&"
     switch (method.name.getText()) {
         case "connect": {
-            v.printer.printWithoutSpace("mqttclient_connect(&" + method.expression.getText() + ")")
+            v.printer.printWithoutSpace(`mqttclient_connect(${prefix}${method.expression.getText()})`)
             break
         }
         case "publish": {
-            v.printer.printWithoutSpace("mqttclient_publish(&" + method.expression.getText() + ")")
+            v.printer.printWithoutSpace(`mqttclient_publish(${prefix}${method.expression.getText()})`)
             break
         }
         case "subscribe": {
-            v.printer.printWithoutSpace("mqttclient_subscribe(&" + method.expression.getText() + ")")
+            v.printer.printWithoutSpace(`mqttclient_subscribe(${prefix}${method.expression.getText()})`)
             break
         }
         case "wait": {
-            v.printer.printWithoutSpace("mqttclient_wait(&" + method.expression.getText() + ")")
+            v.printer.printWithoutSpace(`mqttclient_wait(${prefix}${method.expression.getText()})`)
             break
         }
         case "ping": {
-            v.printer.printWithoutSpace("mqttclient_ping(&" + method.expression.getText() + ")")
+            v.printer.printWithoutSpace(`mqttclient_ping(${prefix}${method.expression.getText()})`)
             break
         }
         default: {
