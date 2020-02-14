@@ -28,12 +28,20 @@ exports.visitExpressionStatement = (expressionStatement, v) => {
     v.printer.printWithoutSpace(";\n");
 };
 exports.visitVariableStatement = (variableStatement, v) => {
-    v.printer.print("");
-    exports.visitVariableDeclarationList(variableStatement.declarationList, v);
-    v.printer.printWithoutSpace(";\n");
+    // Print semi-colon and indent only when output is (arrow function declarations are not here)
+    if (!variableStatement.declarationList.declarations.every((d) => d.initializer && typescript_1.default.isArrowFunction(d.initializer))) {
+        v.printer.print("");
+    }
+    if (exports.visitVariableDeclarationList(variableStatement.declarationList, v) > 0) {
+        v.printer.printWithoutSpace(";\n");
+    }
 };
 exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
+    let count = 0;
     for (const d of variableDeclarationList.declarations) {
+        if (count > 0) {
+            v.printer.printWithoutSpace(", ");
+        }
         if (!d.initializer) {
             diag.emitDiagnostic(d, "lack of initialization");
             process.exit(1);
@@ -42,6 +50,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
         if (typescript_1.default.isNumericLiteral(expr)) {
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText());
+            count++;
             continue;
         }
         if (typescript_1.default.isPropertyAccessExpression(expr)) {
@@ -50,6 +59,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     case "mqtt.result.success": {
                         v.printer.printWithoutSpace("int " + d.name.getText() + " = ");
                         expressions.visitExpression(expr, v);
+                        count++;
                         continue;
                     }
                 }
@@ -64,17 +74,20 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                         process.exit(1);
                     }
                     handleTaskInitialization(expr, expr.expression.name, v);
+                    count++;
                     continue;
                 }
             }
             if (typescript_1.default.isIdentifier(expr.expression)) {
                 if (isTask(expr.expression, v)) {
                     handleTaskInitialization(expr, expr.expression, v);
+                    count++;
                     continue;
                 }
             }
             if (isMQTTClient(expr.expression, v)) {
                 handleMQTTClientDeclaration(d, v);
+                count++;
                 continue;
             }
         }
@@ -84,6 +97,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
                     v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);");
                     v.printer.print("tm_putstring(\"\\n\")");
+                    count++;
                     continue;
                 }
                 case "tkernel.ask_line": {
@@ -93,6 +107,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     v.printer.printLn("char " + d.name.getText() + "[sizeof line];");
                     v.printer.printLn("strncpy(" + d.name.getText() + ", line, sizeof line);");
                     v.printer.print(d.name.getText() + "[sizeof line - 1] = '\\0'");
+                    count++;
                     continue;
                 }
             }
@@ -112,7 +127,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
         }
         const type = util.getTypeString(expr, v.checker);
         if (util.isPrimitiveType(type)) {
-            v.printer.print(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `);
+            v.printer.printWithoutSpace(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `);
         }
         else {
             const name = d.name.getText();
@@ -126,8 +141,10 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
             v.environmentStack[0][name] = 'pointer';
         }
         expressions.visitExpression(expr, v);
+        count++;
         continue;
     }
+    return count;
 };
 const isMQTTClient = (location, v) => {
     const sym = v.checker.getSymbolAtLocation(location);

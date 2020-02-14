@@ -18,13 +18,22 @@ export const visitExpressionStatement = (expressionStatement : ts.ExpressionStat
 }
 
 export const visitVariableStatement = (variableStatement : ts.VariableStatement, v : visitor) => {
-    v.printer.print("")
-    visitVariableDeclarationList(variableStatement.declarationList, v)
-    v.printer.printWithoutSpace(";\n")
+    // Print semi-colon and indent only when output is (arrow function declarations are not here)
+    if (!variableStatement.declarationList.declarations.every((d) => d.initializer && ts.isArrowFunction(d.initializer))) {
+        v.printer.print("")
+    }
+    if (visitVariableDeclarationList(variableStatement.declarationList, v) > 0) {
+        v.printer.printWithoutSpace(";\n")
+    }
 }
 
 export const visitVariableDeclarationList = (variableDeclarationList : ts.VariableDeclarationList, v : visitor) => {
+    let count = 0
     for (const d of variableDeclarationList.declarations) {
+        if (count > 0) {
+            v.printer.printWithoutSpace(", ")
+        }
+
         if (!d.initializer) {
             diag.emitDiagnostic(d, "lack of initialization")
             process.exit(1)
@@ -35,6 +44,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
         if (ts.isNumericLiteral(expr)) {
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText())
+            count++
             continue
         }
 
@@ -44,6 +54,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     case "mqtt.result.success": {
                         v.printer.printWithoutSpace("int " + d.name.getText() + " = ")
                         expressions.visitExpression(expr, v)
+                        count++
                         continue
                     }
                 }
@@ -59,17 +70,20 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                         process.exit(1)
                     }
                     handleTaskInitialization(expr, expr.expression.name!, v)
+                    count++
                     continue
                 }
             }
             if (ts.isIdentifier(expr.expression)) {
                 if (isTask(expr.expression, v)) {
                     handleTaskInitialization(expr, expr.expression, v)
+                    count++
                     continue
                 }
             }
             if (isMQTTClient(expr.expression, v)) {
                 handleMQTTClientDeclaration(d, v)
+                count++
                 continue
             }
         }
@@ -80,6 +94,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
                     v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);")
                     v.printer.print("tm_putstring(\"\\n\")")
+                    count++
                     continue
                 }
                 case "tkernel.ask_line": {
@@ -89,6 +104,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                     v.printer.printLn("char " + d.name.getText() + "[sizeof line];")
                     v.printer.printLn("strncpy(" + d.name.getText() + ", line, sizeof line);")
                     v.printer.print(d.name.getText() + "[sizeof line - 1] = '\\0'")
+                    count++
                     continue
                 }
             }
@@ -109,7 +125,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
 
         const type = util.getTypeString(expr, v.checker)
         if (util.isPrimitiveType(type)) {
-            v.printer.print(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `)
+            v.printer.printWithoutSpace(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `)
         } else {
             const name = d.name.getText()
             // TODO: add adhoc type mapper
@@ -121,8 +137,11 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
             v.environmentStack[0][name] = 'pointer'
         }
         expressions.visitExpression(expr, v)
+        count++
         continue
     }
+
+    return count
 }
 const isMQTTClient = (location : ts.Node, v : visitor) => {
     const sym = v.checker.getSymbolAtLocation(location)
