@@ -8,6 +8,7 @@ import * as util from '../utilities'
 export class visitor {
     printer : p.Printer
     checker : ts.TypeChecker
+    classes : ts.ClassDeclaration[] = []
     tasks : ts.MethodDeclaration[] = []
     taskNames : string[] = []
     useMessageBox : boolean[] = []
@@ -58,6 +59,36 @@ export class visitor {
                 ts.forEachChild(sourceFile, this.visit)
             }
         }
+    }
+
+    printClasses = () => {
+        if (this.classes.length == 0) {
+            return
+        }
+
+        let tmpPrinter = this.printer
+
+        this.printer = new p.BufferedPrinter
+        this.printer.unindent()
+
+        this.classes.forEach((c) => {
+            const className = c.name
+            if (!className) {
+                diag.emitDiagnostic(c, "no class name")
+                process.exit(1)
+            }
+            this.printer.printLn(`struct ${className!.text} {`)
+            this.printer.indent()
+            c.members.forEach((m) => {
+                this.printer.printLn(`${util.getTypeString(m, this.checker)} ${m.name};`)
+            })
+            this.printer.unindent()
+            this.printer.printLn("}")
+        });
+
+        (this.printer as p.BufferedPrinter).outputBuffer()
+
+        this.printer = tmpPrinter
     }
 
     printTasks = () => {

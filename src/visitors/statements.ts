@@ -71,6 +71,13 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
                 handleMQTTClientDeclaration(d, v)
                 continue
             }
+            // TODO: declare and use constructor as function
+            v.printer.printWithoutSpace(`${util.getTypeString(expr.expression, v.checker)} ${d.name.getText()} { `)
+            if (expr.arguments) {
+                expr.arguments.forEach((a) => { expressions.visitExpression(a, v) })
+            }
+            v.printer.printWithoutSpace(" };")
+            continue
         }
 
         if (ts.isCallExpression(expr)) {
@@ -278,8 +285,12 @@ export const visitStatement = (statement : ts.Statement, v : visitor) => {
 
 export const visitClassDeclaration = (classDeclaration : ts.ClassDeclaration, v : visitor) => {
     if (!util.isGlobal(classDeclaration)) diag.emitDiagnostic(classDeclaration, "ClassDeclarations is only allowed in global scope")
-    let notAllowedDiagnostic = () => diag.emitDiagnostic(classDeclaration, "ClassDeclarations other than tasks are not allowed")
+    let notAllowedDiagnostic = () => diag.emitDiagnostic(classDeclaration, "ClassDeclarations with heritage other than tasks are not allowed")
     const heritage = classDeclaration.heritageClauses
+    if (!heritage) {
+        v.classes.push(classDeclaration)
+        return
+    }
     if (!heritage || heritage.length != 1 && heritage[0].types.length != 1) {
         notAllowedDiagnostic()
         return

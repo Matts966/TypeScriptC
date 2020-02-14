@@ -28,6 +28,8 @@ const main = () => {
 
     visitor.printIncludes()
 
+    visitor.printClasses()
+
     visitor.printTasks()
 
     console.log(`EXPORT INT usermain( void ) {`)
