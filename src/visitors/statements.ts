@@ -97,7 +97,7 @@ export const visitVariableDeclarationList = (variableDeclarationList : ts.Variab
         if (ts.isArrowFunction(expr)) {
             if (!util.isGlobal(d.parent)) diag.emitDiagnostic(d, "Function Declarations are only allowed in global scope")
             const types = util.getTypeString(expr, v.checker).split(" ")
-            const returnType = types[types.length-1]
+            const returnType = types[types.length - 1]
             v.functions.push(new Function(returnType, d.name.getText(), expr.body))
             // Visit body to check the dependencies (do not print)
             const tmp = v.printer
@@ -223,7 +223,7 @@ const handleMQTTClientDeclaration = (d : ts.VariableDeclaration, v : visitor) =>
     v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n")
     v.printer.print("mqtt_init_ctx(&" + d.name.getText() + ")")
 }
-const escape = (n: ts.VariableDeclaration) => {
+const escape = (n : ts.VariableDeclaration) => {
     const name = n.name.getText()
     let escaped = false
     // Search the block the decl is belong to
@@ -231,7 +231,7 @@ const escape = (n: ts.VariableDeclaration) => {
         if (ts.isReturnStatement(node)) {
             if (node.expression) {
                 if (node.expression.getText() == name) {
-                    escaped =  true
+                    escaped = true
                 }
             }
         }

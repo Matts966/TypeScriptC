@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const typescript_1 = __importDefault(require("typescript"));
 exports.isGlobal = (node) => {
-    if (typescript_1.default.isSourceFile(node.parent))
+    if (typescript_1.default.isSourceFile(node.parent) || node.parent.kind == typescript_1.default.SyntaxKind.FirstStatement)
         return true;
     return false;
 };
@@ -42,5 +42,22 @@ exports.getProgramFromArgV = () => {
 };
 exports.getPreEmitDiagnostics = (p) => {
     return typescript_1.default.getPreEmitDiagnostics(p);
+};
+exports.isPrimitiveType = (type) => {
+    if (type in ['boolean', 'number', 'string'])
+        return true;
+    return false;
+};
+exports.mapPrimitiveType = (type) => {
+    switch (type) {
+        case 'boolean':
+            return 'bool';
+        // TODO: check
+        case 'number':
+            return 'int';
+        // TODO: length
+        case 'string':
+            return 'char*';
+    }
 };
 //# sourceMappingURL=utilities.js.map

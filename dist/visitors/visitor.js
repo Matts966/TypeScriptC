@@ -16,15 +16,26 @@ const diag = __importStar(require("../diagnostics"));
 const statements = __importStar(require("./statements"));
 const p = __importStar(require("../printer"));
 const util = __importStar(require("../utilities"));
+class Function {
+    constructor(type, name, body) {
+        this.type = type;
+        this.name = name;
+        this.body = body;
+    }
+}
+exports.Function = Function;
 class visitor {
     constructor(printer, checker) {
         this.tasks = [];
         this.taskNames = [];
+        this.functions = [];
         this.useMessageBox = [];
         this.useLineBuffer = false;
         this.useNetwork = false;
         this.nowProcessingTaskIndex = 0;
         this.includes = [];
+        this.environmentStack = [new Map()];
+        this.useGC = false;
         this.visit = (node) => {
             if (node.kind == typescript_1.default.SyntaxKind.EndOfFileToken) {
                 return;
@@ -53,15 +64,35 @@ class visitor {
                 if (!sourceFile.isDeclarationFile &&
                     !sourceFile.fileName.endsWith("tkernel.ts") &&
                     !sourceFile.fileName.endsWith("mqtt.ts")) {
-                    // using checker sample
-                    const symbol = this.checker.getSymbolAtLocation(sourceFile);
-                    // no program
-                    if (!symbol)
-                        process.exit(0);
                     // Walk the tree to search source code.
                     typescript_1.default.forEachChild(sourceFile, this.visit);
                 }
             }
+        };
+        this.printFucntions = () => {
+            if (this.functions.length == 0) {
+                return;
+            }
+            let tmpPrinter = this.printer;
+            this.printer = new p.BufferedPrinter;
+            this.printer.unindent();
+            this.functions.forEach((f) => {
+                if (util.isPrimitiveType(f.type)) {
+                    this.printer.print(`${util.mapPrimitiveType(f.type)} ${f.name}() `);
+                }
+                else {
+                    if (f.type == 'MQTTClient') {
+                        this.printer.print(`MQTTCtx* ${f.name}() `);
+                    }
+                    else {
+                        this.printer.print(`${f.type}* ${f.name}() `);
+                    }
+                }
+                this.visit(f.body);
+                this.printer.printLn("");
+            });
+            this.printer.outputBuffer();
+            this.printer = tmpPrinter;
         };
         this.printTasks = () => {
             if (this.tasks.length == 0) {

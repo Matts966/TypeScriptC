@@ -1,7 +1,7 @@
 import ts from 'typescript'
 
 export const isGlobal = (node : ts.Node) => {
-    if (ts.isSourceFile(node.parent) || node.parent.kind ==  ts.SyntaxKind.FirstStatement) return true
+    if (ts.isSourceFile(node.parent) || node.parent.kind == ts.SyntaxKind.FirstStatement) return true
     return false
 }
 
@@ -46,12 +46,12 @@ export const getPreEmitDiagnostics = (p : ts.Program) => {
 
 type primitives = 'boolean' | 'number' | 'string'
 
-export const isPrimitiveType = (type: string): type is primitives => {
+export const isPrimitiveType = (type : string) : type is primitives => {
     if (type in ['boolean', 'number', 'string']) return true
     return false
 }
 
-export const mapPrimitiveType = (type: primitives) => {
+export const mapPrimitiveType = (type : primitives) => {
     switch (type) {
         case 'boolean':
             return 'bool'
@@ -61,5 +61,5 @@ export const mapPrimitiveType = (type: primitives) => {
         // TODO: length
         case 'string':
             return 'char*'
-    } 
+    }
 }

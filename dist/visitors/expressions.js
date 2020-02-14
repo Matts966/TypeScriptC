@@ -49,8 +49,10 @@ exports.visitExpression = (expression, v) => {
                             diag.emitDiagnostic(e, "control sequence " + cc + " is not allowed now");
                             process.exit(1);
                         }).join('');
-                    else
+                    else {
+                        diag.emitDiagnostic(e, "not literal");
                         process.exit(1);
+                    }
                 }) + "\\n\")");
                 return;
             case "process.exit":
@@ -70,7 +72,13 @@ exports.visitExpression = (expression, v) => {
             default:
                 if (typescript_1.default.isPropertyAccessExpression(expression.expression)) {
                     if (util.getTypeString(expression.expression.expression, v.checker) == "MQTTClient") {
-                        handleMQTTClientMethod(expression.expression, v);
+                        let pointer = false;
+                        for (const e of v.environmentStack) {
+                            if (e[expression.expression.expression.getText()] == 'pointer') {
+                                pointer = true;
+                            }
+                        }
+                        handleMQTTClientMethod(expression.expression, v, pointer);
                         return;
                     }
                     // TODO: add util for type checker
@@ -126,42 +134,56 @@ exports.visitExpression = (expression, v) => {
         v.printer.printWithoutSpace("MQTT_CODE_SUCCESS");
         return;
     }
-    if (typescript_1.default.isPropertyAccessExpression(expression)
-        || typescript_1.default.isPostfixUnaryExpression(expression)) {
-        switch (expression.getText()) {
-            case "client.message":
-                {
-                    v.printer.printWithoutSpace("client.publish.buffer");
-                }
-                return;
+    if (typescript_1.default.isPropertyAccessExpression(expression)) {
+        let pointer = false;
+        for (const e of v.environmentStack) {
+            if (e[expression.expression.getText()] == 'pointer') {
+                v.printer.printWithoutSpace(expression.expression.getText() + "->");
+                pointer = true;
+                break;
+            }
         }
+        if (!pointer) {
+            v.printer.printWithoutSpace(expression.expression.getText() + ".");
+        }
+        if (util.getTypeString(expression.expression, v.checker) == 'MQTTClient') {
+            if (expression.name.getText() == 'message') {
+                v.printer.printWithoutSpace("publish.buffer");
+                return;
+            }
+        }
+        v.printer.printWithoutSpace(expression.name.getText());
+        return;
+    }
+    if (typescript_1.default.isPostfixUnaryExpression(expression)) {
         v.printer.printWithoutSpace(expression.getText());
         return;
     }
-    diag.emitDiagnostic(expression, "don't know how to handle the expression " + expression.getText());
-    diag.emitDiagnostic(expression, "Syntax kind: " + typescript_1.default.SyntaxKind[expression.kind]);
+    diag.emitDiagnostic(expression, "don't know how to handle the expression " + expression.getText() +
+        "\nSyntax kind: " + typescript_1.default.SyntaxKind[expression.kind]);
     process.exit(1);
 };
-const handleMQTTClientMethod = (method, v) => {
+const handleMQTTClientMethod = (method, v, pointer) => {
+    const prefix = pointer ? "" : "&";
     switch (method.name.getText()) {
         case "connect": {
-            v.printer.printWithoutSpace("mqttclient_connect(&" + method.expression.getText() + ")");
+            v.printer.printWithoutSpace(`mqttclient_connect(${prefix}${method.expression.getText()})`);
             break;
         }
         case "publish": {
-            v.printer.printWithoutSpace("mqttclient_publish(&" + method.expression.getText() + ")");
+            v.printer.printWithoutSpace(`mqttclient_publish(${prefix}${method.expression.getText()})`);
             break;
         }
         case "subscribe": {
-            v.printer.printWithoutSpace("mqttclient_subscribe(&" + method.expression.getText() + ")");
+            v.printer.printWithoutSpace(`mqttclient_subscribe(${prefix}${method.expression.getText()})`);
             break;
         }
         case "wait": {
-            v.printer.printWithoutSpace("mqttclient_wait(&" + method.expression.getText() + ")");
+            v.printer.printWithoutSpace(`mqttclient_wait(${prefix}${method.expression.getText()})`);
             break;
         }
         case "ping": {
-            v.printer.printWithoutSpace("mqttclient_ping(&" + method.expression.getText() + ")");
+            v.printer.printWithoutSpace(`mqttclient_ping(${prefix}${method.expression.getText()})`);
             break;
         }
         default: {
@@ -254,7 +276,7 @@ const handleTaskMethod = (method, args, typeName, v) => {
         }
     }
 };
-exports.handleClassMembers = (members, v) => {
+exports.handleTaskMembers = (members, v) => {
     for (const member of members) {
         const invalidOverrideMessage = "please override only task with protected keyword";
         if (typescript_1.default.isMethodDeclaration(member)) {

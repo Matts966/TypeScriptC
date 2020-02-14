@@ -29,8 +29,16 @@ const main = () => {
     const visitor = new visitors.visitor(new p.BufferedPrinter(), checker);
     visitor.visitProgram(program);
     visitor.printIncludes();
+    if (visitor.useGC) {
+        console.log(`#include "gc.h"\n`);
+    }
+    visitor.printFucntions();
     visitor.printTasks();
     console.log(`EXPORT INT usermain( void ) {`);
+    if (visitor.useGC) {
+        console.log(`\tbyte __a;
+\tgc_start(&gc, &__a);\n`);
+    }
     if (visitor.useMessageBox.some((e) => e)) {
         console.log(`\tT_CMBF cmbf = { NULL, TA_TFIFO, 256, 5 };`);
     }
@@ -50,6 +58,9 @@ const main = () => {
 `);
     }
     visitor.printer.outputBuffer();
+    if (visitor.useGC) {
+        console.log(`\n\tgc_stop(&gc);`);
+    }
     console.log(`}`);
 };
 main();

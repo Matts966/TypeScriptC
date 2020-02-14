@@ -7,10 +7,10 @@ import * as util from '../utilities'
 
 export class Function {
     constructor(
-        public type: string,
-        public name: string,
-        public body: ts.FunctionBody | ts.ConciseBody
-    ) {}
+        public type : string,
+        public name : string,
+        public body : ts.FunctionBody | ts.ConciseBody
+    ) { }
 }
 
 export class visitor {
@@ -24,7 +24,7 @@ export class visitor {
     useNetwork : boolean = false
     nowProcessingTaskIndex : number = 0
     private includes : string[] = []
-    environmentStack: Map<string, string>[] = [new Map<string, string>()]
+    environmentStack : Map<string, string>[] = [new Map<string, string>()]
     useGC : boolean = false
 
     constructor(printer : p.Printer, checker : ts.TypeChecker) {
@@ -61,10 +61,6 @@ export class visitor {
             if (!sourceFile.isDeclarationFile &&
                 !sourceFile.fileName.endsWith("tkernel.ts") &&
                 !sourceFile.fileName.endsWith("mqtt.ts")) {
-
-                // using checker sample
-                // const symbol = this.checker.getSymbolAtLocation(sourceFile)
-
                 // Walk the tree to search source code.
                 ts.forEachChild(sourceFile, this.visit)
             }

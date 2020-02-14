@@ -14,6 +14,8 @@ const typescript_1 = __importDefault(require("typescript"));
 const expressions = __importStar(require("./expressions"));
 const diag = __importStar(require("../diagnostics"));
 const util = __importStar(require("../utilities"));
+const visitor_1 = require("./visitor");
+const printer_1 = require("../printer");
 exports.isStatement = (node) => {
     if (typescript_1.default.isExpressionStatement(node) || typescript_1.default.isIfStatement(node) || typescript_1.default.isWhileStatement(node) || typescript_1.default.isForStatement || typescript_1.default.isVariableStatement(node) || typescript_1.default.isReturnStatement(node) || typescript_1.default.isBlock(node)) {
         return true;
@@ -40,7 +42,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
         if (typescript_1.default.isNumericLiteral(expr)) {
             // TODO: check if it is int
             v.printer.printWithoutSpace("int " + d.name.getText() + " = " + expr.getText());
-            return;
+            continue;
         }
         if (typescript_1.default.isPropertyAccessExpression(expr)) {
             if (util.getTypeString(expr, v.checker) == "result") {
@@ -48,7 +50,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     case "mqtt.result.success": {
                         v.printer.printWithoutSpace("int " + d.name.getText() + " = ");
                         expressions.visitExpression(expr, v);
-                        return;
+                        continue;
                     }
                 }
             }
@@ -56,7 +58,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
         if (typescript_1.default.isNewExpression(expr)) {
             if (typescript_1.default.isClassExpression(expr.expression)) {
                 if (isTask(expr.expression.name, v)) {
-                    expressions.handleClassMembers(expr.expression.members, v);
+                    expressions.handleTaskMembers(expr.expression.members, v);
                     if (!expr.expression.name) {
                         diag.emitDiagnostic(expr.expression, "task should have name");
                         process.exit(1);
@@ -82,7 +84,7 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     v.printer.printWithoutSpace("tm_putstring(" + expr.arguments[0].getText() + ");\n");
                     v.printer.printLn("char " + d.name.getText() + " = tm_getchar(TMO_FEVR);");
                     v.printer.print("tm_putstring(\"\\n\")");
-                    return;
+                    continue;
                 }
                 case "tkernel.ask_line": {
                     v.useLineBuffer = true;
@@ -91,13 +93,40 @@ exports.visitVariableDeclarationList = (variableDeclarationList, v) => {
                     v.printer.printLn("char " + d.name.getText() + "[sizeof line];");
                     v.printer.printLn("strncpy(" + d.name.getText() + ", line, sizeof line);");
                     v.printer.print(d.name.getText() + "[sizeof line - 1] = '\\0'");
-                    return;
+                    continue;
                 }
             }
         }
-        diag.emitDiagnostic(d, "don't know how to handle the declaration " + expr.getText());
-        diag.emitDiagnostic(d, "Syntax kind: " + typescript_1.default.SyntaxKind[expr.kind]);
-        process.exit(1);
+        if (typescript_1.default.isArrowFunction(expr)) {
+            if (!util.isGlobal(d.parent))
+                diag.emitDiagnostic(d, "Function Declarations are only allowed in global scope");
+            const types = util.getTypeString(expr, v.checker).split(" ");
+            const returnType = types[types.length - 1];
+            v.functions.push(new visitor_1.Function(returnType, d.name.getText(), expr.body));
+            // Visit body to check the dependencies (do not print)
+            const tmp = v.printer;
+            v.printer = new printer_1.BufferedPrinter;
+            v.visit(expr.body);
+            v.printer = tmp;
+            continue;
+        }
+        const type = util.getTypeString(expr, v.checker);
+        if (util.isPrimitiveType(type)) {
+            v.printer.print(`${util.mapPrimitiveType(type)} ${d.name.getText()} = `);
+        }
+        else {
+            const name = d.name.getText();
+            // TODO: add adhoc type mapper
+            if (type == "MQTTClient") {
+                v.printer.printWithoutSpace(`MQTTCtx* ${name} = `);
+            }
+            else {
+                v.printer.printWithoutSpace(`${type}* ${name} = `);
+            }
+            v.environmentStack[0][name] = 'pointer';
+        }
+        expressions.visitExpression(expr, v);
+        continue;
     }
 };
 const isMQTTClient = (location, v) => {
@@ -194,8 +223,35 @@ const handleTaskInitialization = (newExpr, taskIdent, v) => {
     }
 };
 const handleMQTTClientDeclaration = (d, v) => {
+    if (escape(d)) {
+        v.printer.printWithoutSpace("MQTTCtx* " + d.name.getText() + " = gc_malloc(&gc, sizeof(MQTTCtx));\n");
+        v.printer.print("mqtt_init_ctx(" + d.name.getText() + ")");
+        v.environmentStack[0][d.name.getText()] = 'pointer';
+        v.useGC = true;
+        return;
+    }
     v.printer.printWithoutSpace("MQTTCtx " + d.name.getText() + ";\n");
     v.printer.print("mqtt_init_ctx(&" + d.name.getText() + ")");
+};
+const escape = (n) => {
+    const name = n.name.getText();
+    let escaped = false;
+    // Search the block the decl is belong to
+    n.parent.parent.parent.forEachChild((node) => {
+        if (typescript_1.default.isReturnStatement(node)) {
+            if (node.expression) {
+                if (node.expression.getText() == name) {
+                    escaped = true;
+                }
+            }
+        }
+        if (typescript_1.default.isPropertyAssignment(node)) {
+            if (node.initializer.getText() == name) {
+                escaped = true;
+            }
+        }
+    });
+    return escaped;
 };
 exports.visitStatement = (statement, v) => {
     if (typescript_1.default.isExpressionStatement(statement)) {
@@ -272,13 +328,25 @@ exports.visitStatement = (statement, v) => {
         return;
     }
     if (typescript_1.default.isBlock(statement)) {
+        v.environmentStack.unshift(new Map());
         v.printer.printLn("{", { indentLevel: 0 });
         v.printer.indent();
         statement.statements.forEach((e) => {
             exports.visitStatement(e, v);
         });
+        v.environmentStack.shift();
         v.printer.unindent();
         v.printer.printLn("}");
+        return;
+    }
+    if (typescript_1.default.isReturnStatement(statement)) {
+        if (statement.expression) {
+            v.printer.print("return ");
+            expressions.visitExpression(statement.expression, v);
+            v.printer.printWithoutSpace(";\n");
+            return;
+        }
+        v.printer.print("return;");
         return;
     }
     diag.emitDiagnostic(statement, "visitStatement: don't know how to handle " + typescript_1.default.SyntaxKind[statement.kind]);
@@ -305,7 +373,8 @@ exports.visitClassDeclaration = (classDeclaration, v) => {
     const m = classDeclaration.members[0];
     if (!m || !m.name || m.name.getText() != "task") {
         notAllowedDiagnostic();
+        return;
     }
-    expressions.handleClassMembers(classDeclaration.members, v);
+    expressions.handleTaskMembers(classDeclaration.members, v);
 };
 //# sourceMappingURL=statements.js.map
